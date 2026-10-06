@@ -1,5 +1,6 @@
 package com.example.ejadwebapplication.Model;
 
+import com.example.ejadwebapplication.Entity.Notification;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -25,7 +26,7 @@ public class Staff extends BaseAccount {
     @JsonIgnore
     private Set<Report> reports;
 
-    // @OneToMany(mappedBy = "staff")
-    // @JsonIgnore
-    // private Set<Notification> notifications;
+     @OneToMany(mappedBy = "staff")
+     @JsonIgnore
+     private Set<Notification> notifications;
 }

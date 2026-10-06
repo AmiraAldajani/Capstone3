@@ -1,9 +1,9 @@
 package com.example.ejadwebapplication.Model;
 
+import com.example.ejadwebapplication.Entity.Notification;
 import com.example.ejadwebapplication.Enums.ReportStatus;
 import com.example.ejadwebapplication.Enums.ReportType;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -62,6 +62,6 @@ public class Report {
     @JoinTable(name = "report_location", joinColumns = @JoinColumn(name = "report_id"), inverseJoinColumns = @JoinColumn(name = "location_id"))
     private Set<Location> locations;
 
-//    @OneToMany(mappedBy = "report")
-//    private Set<Notification> notifications;
+    @OneToMany(mappedBy = "report")
+    private Set<Notification> notifications;
 }

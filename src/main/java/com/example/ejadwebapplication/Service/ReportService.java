@@ -37,7 +37,7 @@ public class ReportService {
         report.setItemDate(reportDTO.getItemDate());
         report.setUser(reportDTO.getUser());
         report.setCategory(reportDTO.getCategory());
-        report.setLocations(reportDTO.getLocations());
+//        report.setLocations(reportDTO.getLocations());
 
         report.setStatus(ReportStatus.ACTIVE);
         report.setCreatedAt(LocalDateTime.now());
