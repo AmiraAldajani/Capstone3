@@ -1,12 +1,12 @@
 package com.example.ejadwebapplication.Model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.Set;
 
 @Entity
 @Getter
@@ -22,9 +22,9 @@ public class Staff extends BaseAccount {
     private Location location;
 
     // TODO: فعّلها لما يرفع العضو 2 كلاس Report و Notification
-    // @OneToMany(mappedBy = "staff")
-    // @JsonIgnore
-    // private Set<Report> reports;
+     @OneToMany(mappedBy = "staff")
+     @JsonIgnore
+     private Set<Report> reports;
 
     // @OneToMany(mappedBy = "staff")
     // @JsonIgnore

@@ -1,6 +1,7 @@
 package com.example.ejadwebapplication.Model;
 
-import com.example.lostfound.Enums.LocationType;
+
+import com.example.ejadwebapplication.Enums.LocationType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;

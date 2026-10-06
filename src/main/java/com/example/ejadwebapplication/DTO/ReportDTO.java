@@ -3,6 +3,8 @@ package com.example.ejadwebapplication.DTO;
 
 import com.example.ejadwebapplication.Enums.ReportType;
 import com.example.ejadwebapplication.Model.Category;
+import com.example.ejadwebapplication.Model.Location;
+import com.example.ejadwebapplication.Model.User;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
