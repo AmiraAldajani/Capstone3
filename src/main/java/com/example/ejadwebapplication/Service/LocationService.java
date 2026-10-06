@@ -6,6 +6,7 @@ import com.example.ejadwebapplication.DTOOUT.LocationDTOOut;
 import com.example.ejadwebapplication.Enums.LocationType;
 import com.example.ejadwebapplication.Model.Location;
 import com.example.ejadwebapplication.Repository.LocationRepository;
+import com.example.ejadwebapplication.Repository.ReportRepository;
 import com.example.ejadwebapplication.Repository.StaffRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ public class LocationService {
 
     private final LocationRepository locationRepository;
     private final StaffRepository staffRepository;
+    private final ReportRepository reportRepository;
 
     public List<LocationDTOOut> getAllLocations() {
         return convertListToDTO(locationRepository.findAll());
@@ -60,6 +62,9 @@ public class LocationService {
         }
         if (staffRepository.existsByLocation(location)) {
             throw new ApiException("Cannot delete a location that has staff assigned to it");
+        }
+        if (reportRepository.existsByLocationsContaining(location)) {
+            throw new ApiException("Cannot delete a location that is linked to reports");
         }
         locationRepository.delete(location);
     }

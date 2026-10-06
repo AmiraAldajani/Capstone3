@@ -6,9 +6,12 @@ import com.example.ejadwebapplication.DTOOUT.StaffDTOOut;
 import com.example.ejadwebapplication.Model.Location;
 import com.example.ejadwebapplication.Model.Staff;
 import com.example.ejadwebapplication.Repository.LocationRepository;
+import com.example.ejadwebapplication.Repository.NotificationRepository;
+import com.example.ejadwebapplication.Repository.ReportRepository;
 import com.example.ejadwebapplication.Repository.StaffRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +22,8 @@ public class StaffService {
 
     private final StaffRepository staffRepository;
     private final LocationRepository locationRepository;
+    private final ReportRepository reportRepository;
+    private final NotificationRepository notificationRepository;
 
     public List<StaffDTOOut> getAllStaff() {
         return convertListToDTO(staffRepository.findAll());
@@ -80,11 +85,17 @@ public class StaffService {
         staffRepository.save(staff);
     }
 
+    // الموظف يوصله إشعارات NEW_REPORT حتى لو ما رفع بلاغ، فنحذفها أول
+    @Transactional
     public void deleteStaff(Integer id) {
         Staff staff = staffRepository.findStaffById(id);
         if (staff == null) {
             throw new ApiException("Staff not found");
         }
+        if (reportRepository.existsByStaff(staff)) {
+            throw new ApiException("Cannot delete a staff member who has reports, delete the reports first");
+        }
+        notificationRepository.deleteAllByStaff(staff);
         staffRepository.delete(staff);
     }
 

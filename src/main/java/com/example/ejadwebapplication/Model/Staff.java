@@ -25,7 +25,7 @@ public class Staff extends BaseAccount {
     @JsonIgnore
     private Set<Report> reports;
 
-    // @OneToMany(mappedBy = "staff")
-    // @JsonIgnore
-    // private Set<Notification> notifications;
+     @OneToMany(mappedBy = "staff")
+     @JsonIgnore
+     private Set<Notification> notifications;
 }

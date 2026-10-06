@@ -1,4 +1,4 @@
-package com.example.ejadwebapplication.DTO;
+package com.example.ejadwebapplication.DTOIN;
 
 
 import com.example.ejadwebapplication.Enums.ReportType;

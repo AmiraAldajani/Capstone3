@@ -16,11 +16,11 @@ import java.util.Set;
 public class User extends BaseAccount {
 
 
+    @OneToMany(mappedBy = "user")
+    @JsonIgnore
+    private Set<Report> reports;
+
      @OneToMany(mappedBy = "user")
      @JsonIgnore
-     private Set<Report> reports;
-
-    // @OneToMany(mappedBy = "user")
-    // @JsonIgnore
-    // private Set<Notification> notifications;
+     private Set<Notification> notifications;
 }
