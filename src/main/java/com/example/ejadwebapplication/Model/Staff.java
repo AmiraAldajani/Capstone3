@@ -21,10 +21,9 @@ public class Staff extends BaseAccount {
     @JoinColumn(name = "location_id", referencedColumnName = "id")
     private Location location;
 
-    // TODO: فعّلها لما يرفع العضو 2 كلاس Report و Notification
-     @OneToMany(mappedBy = "staff")
-     @JsonIgnore
-     private Set<Report> reports;
+    @OneToMany(mappedBy = "staff")
+    @JsonIgnore
+    private Set<Report> reports;
 
     // @OneToMany(mappedBy = "staff")
     // @JsonIgnore
