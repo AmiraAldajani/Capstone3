@@ -1,6 +1,6 @@
 package com.example.ejadwebapplication.Model;
 
-import com.example.lostfound.Enums.LocationType;
+import com.example.ejadwebapplication.Enums.LocationType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -36,8 +36,7 @@ public class Location {
     @JsonIgnore
     private Set<Staff> staff;
 
-    // TODO: علاقة ManyToMany مع Report — المالك Report (العضو 2) بـ @JoinTable، وهذا الطرف mappedBy
-    // @ManyToMany(mappedBy = "locations")
-    // @JsonIgnore
-    // private Set<Report> reports;
+    @ManyToMany(mappedBy = "locations")
+    @JsonIgnore
+    private Set<Report> reports;
 }

@@ -62,6 +62,6 @@ public class Report {
     @JoinTable(name = "report_location", joinColumns = @JoinColumn(name = "report_id"), inverseJoinColumns = @JoinColumn(name = "location_id"))
     private Set<Location> locations;
 
-    @OneToMany(mappedBy = "report")
-    private Set<Notification> notifications;
+//    @OneToMany(mappedBy = "report")
+//    private Set<Notification> notifications;
 }

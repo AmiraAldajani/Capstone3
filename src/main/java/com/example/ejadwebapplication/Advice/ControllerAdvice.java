@@ -25,13 +25,9 @@ public class ControllerAdvice {
         return ResponseEntity.status(400).body(new ApiResponse(e.getMessage()));
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse> methodArgumentNotValidException(MethodArgumentNotValidException e) {
-        String message = e.getFieldError().getDefaultMessage();
-        return ResponseEntity.status(400).body(new ApiResponse(message));
-    }
-
     // مثل تكرار قيمة unique أو حذف سجل مرتبط بسجلات ثانية
+    // DB validation errors
+    // & Constraint Exception
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse> dataIntegrityViolationException(DataIntegrityViolationException e) {
         return ResponseEntity.status(400).body(new ApiResponse("Operation violates data constraints"));
@@ -67,12 +63,6 @@ public class ControllerAdvice {
     @ExceptionHandler(value= MethodArgumentNotValidException.class)
     public ResponseEntity<?> ApiException(MethodArgumentNotValidException e) {
         return ResponseEntity.status(400).body(new ApiResponse(e.getFieldError().getDefaultMessage()));
-    }
-    //DB validation errors
-    // & Constraint Exception
-    @ExceptionHandler(value= DataIntegrityViolationException.class)
-    public ResponseEntity<?> ApiException(DataIntegrityViolationException e) {
-        return ResponseEntity.status(400).body(new ApiResponse(e.getMessage()));
     }
 
     // Server Validation Exception
