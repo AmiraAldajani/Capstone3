@@ -70,7 +70,7 @@ On first run, the `DataSeeder` fills the database with sample data for testing.
 | User | `sara` | `Sara1234` | |
 | User | `fahad` | `Fahad1234` | |
 | Staff | `khalid.staff` | `Khalid1234` | Verified, King Khalid Airport |
-| Staff | `noura.staff` | `Noura1234` | Not verified, Riyadh Park |
+| Staff | `noura.staff` | `Noura1234` | Not verified, Al-Hamra mall |
 
 The seeder also adds 4 locations in Riyadh. These accounts are for development only.
 
