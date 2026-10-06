@@ -93,5 +93,5 @@ Endpoints for reports, matching and notifications will be added as those modules
 | Member | Responsibility |
 |---|---|
 | Amira | Accounts (User, Staff, Admin), Locations, DataSeeder, AI image|
-| Fajir | Reports, Categories |
+| Fajr | Reports, Categories |
 | Turki | Notifications, AI matching and AI service |
