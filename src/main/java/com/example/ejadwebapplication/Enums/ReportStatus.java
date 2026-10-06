@@ -2,9 +2,7 @@ package com.example.ejadwebapplication.Enums;
 
 public enum ReportStatus {
 
-    ACTIVE,
+    OPEN,
     MATCHED,
-    CLAIMED,
-    RETURNED,
     CLOSED
 }

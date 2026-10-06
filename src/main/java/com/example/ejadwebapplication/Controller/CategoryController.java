@@ -19,24 +19,34 @@ public class CategoryController {
         return ResponseEntity.status(200).body(categoryService.getAllCategories());
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("get/{id}")
     public ResponseEntity<?> getCategoryById(@PathVariable Integer id) {
         return ResponseEntity.status(200).body(categoryService.getCategoryById(id));
     }
 
-    @PostMapping
+    @PostMapping("/add")
     public ResponseEntity<?> addCategory(@Valid @RequestBody CategoryDTO categoryDTO) {
         return ResponseEntity.status(200).body(categoryService.addCategory(categoryDTO));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("update/{id}")
     public ResponseEntity<?> updateCategory(@PathVariable Integer id, @Valid @RequestBody CategoryDTO categoryDTO) {
         return ResponseEntity.status(200).body(categoryService.updateCategory(id, categoryDTO));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("delete/{id}")
     public ResponseEntity<?> deleteCategory(@PathVariable Integer id) {
         categoryService.deleteCategory(id);
         return ResponseEntity.status(200).body("Category deleted successfully");
+    }
+
+    @GetMapping("/{categoryId}/reports")
+    public ResponseEntity<?> getReportsByCategory(@PathVariable Integer categoryId) {
+        return ResponseEntity.status(200).body(categoryService.getReportsByCategory(categoryId));
+    }
+
+    @GetMapping("/{categoryId}/report-count")
+    public ResponseEntity<?> getReportCountByCategory(@PathVariable Integer categoryId) {
+        return ResponseEntity.status(200).body(categoryService.getReportCountByCategory(categoryId));
     }
 }

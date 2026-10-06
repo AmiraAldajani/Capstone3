@@ -3,10 +3,12 @@ package com.example.ejadwebapplication.Service;
 import com.example.ejadwebapplication.Api.ApiException;
 import com.example.ejadwebapplication.DTO.CategoryDTO;
 import com.example.ejadwebapplication.Model.Category;
+import com.example.ejadwebapplication.Model.Report;
 import com.example.ejadwebapplication.Repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -46,6 +48,15 @@ public class CategoryService {
         categoryRepository.delete(category);
     }
 
+    public List<Report> getReportsByCategory(Integer categoryId) {
+        Category category = categoryRepository.findById(categoryId).orElseThrow(() -> new ApiException("Category not found with provided id"));
+        return new ArrayList<>(category.getReports());
+    }
+
+    public Integer getReportCountByCategory(Integer categoryId) {
+        Category category = categoryRepository.findById(categoryId).orElseThrow(() -> new ApiException("Category not found with provided id"));
+        return category.getReports().size();
+    }
 
 
 }

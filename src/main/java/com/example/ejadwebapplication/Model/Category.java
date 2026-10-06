@@ -1,5 +1,6 @@
 package com.example.ejadwebapplication.Model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -26,6 +27,7 @@ public class Category {
     @NotBlank
     private String description;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "category")
     private Set<Report> reports;
 }
