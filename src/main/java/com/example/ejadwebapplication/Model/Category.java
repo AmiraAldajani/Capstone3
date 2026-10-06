@@ -29,6 +29,5 @@ public class Category {
 
     @JsonIgnore
     @OneToMany(mappedBy = "category")
-    @JsonIgnore
     private Set<Report> reports;
 }

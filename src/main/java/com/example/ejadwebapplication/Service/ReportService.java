@@ -1,7 +1,10 @@
 package com.example.ejadwebapplication.Service;
 
 import com.example.ejadwebapplication.Api.ApiException;
-import com.example.ejadwebapplication.DTO.ReportDTO;
+import com.example.ejadwebapplication.DTOIN.ReportDTOIn;
+import com.example.ejadwebapplication.DTOOUT.LocationDTOOut;
+import com.example.ejadwebapplication.DTOOUT.ReportDTOOut;
+import com.example.ejadwebapplication.Enums.MatchStatus;
 import com.example.ejadwebapplication.Enums.ReportStatus;
 import com.example.ejadwebapplication.Enums.ReportType;
 import com.example.ejadwebapplication.Model.*;
@@ -10,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -264,5 +268,30 @@ public class ReportService {
                 userId, staffId, reporterName,
                 report.getCategory().getId(), report.getCategory().getName(),
                 locations);
+    }
+
+    public List<ReportDTOOut> getReportsByCategory(Integer categoryId) {
+        return convertListToDTO(reportRepository.findByCategoryId(categoryId));
+    }
+
+    public List<ReportDTOOut> getReportsByDate(LocalDate date) {
+        return convertListToDTO(reportRepository.findByItemDate(date));
+    }
+
+    public List<ReportDTOOut> getReportsByDateRange(LocalDate startDate, LocalDate endDate) {
+        return convertListToDTO(reportRepository.findByItemDateBetween(startDate, endDate));
+    }
+
+    public List<ReportDTOOut> searchReportsByTitle(String keyword) {
+        return convertListToDTO(reportRepository.findByTitleContainingIgnoreCase(keyword));
+    }
+
+    public List<ReportDTOOut> searchReportsByDescription(String keyword) {
+        return convertListToDTO(reportRepository.findByDescriptionContainingIgnoreCase(keyword));
+    }
+    public ReportDTOOut updateReportStatus(Integer id, ReportStatus status) {
+        Report report = findReport(id);
+        report.setStatus(status);
+        return convertToDTO(reportRepository.save(report));
     }
 }

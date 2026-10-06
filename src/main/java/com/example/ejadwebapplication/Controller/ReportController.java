@@ -28,11 +28,11 @@ public class ReportController {
         return ResponseEntity.status(200).body(reportService.getReportById(id));
     }
 
-    @PostMapping("/add")
-    public ResponseEntity<?> addReport(
-            @RequestBody @Valid ReportDTOIn dto) {
-        return ResponseEntity.status(200).body(reportService.addReport(dto));
-    }
+//    @PostMapping("/add")
+//    public ResponseEntity<?> addReport(
+//            @RequestBody @Valid ReportDTOIn dto) {
+//        return ResponseEntity.status(200).body(reportService.addReport(dto));
+//    }
 
     @PutMapping("/update/{id}")
     public ResponseEntity<?> updateReport(
@@ -127,7 +127,6 @@ public class ReportController {
     public ResponseEntity<?> updateReportStatus(
             @PathVariable Integer id,
             @PathVariable ReportStatus status) {
-        return ResponseEntity.status(200)
-                .body(reportService.updateReportStatus(id, status));
+        return ResponseEntity.status(200).body(reportService.updateReportStatus(id, status));
     }
 }

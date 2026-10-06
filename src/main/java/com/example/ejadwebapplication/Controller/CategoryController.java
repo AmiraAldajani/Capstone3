@@ -62,4 +62,4 @@ public class CategoryController {
                 .body(categoryService.getReportCountByCategory(categoryId));
     }
 }
-}
+

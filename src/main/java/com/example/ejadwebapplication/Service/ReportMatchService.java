@@ -72,8 +72,8 @@ public class ReportMatchService {
         saveMatch(lostReport, foundReport, dto.getSimilarityScore(), dto.getAiReason());
     }
 
-    // يُستدعى من ReportService بعد حفظ أي بلاغ جديد
-    // فشل الـ AI ما يفشّل حفظ البلاغ، نسجّل الخطأ ونكمل
+//     يُستدعى من ReportService بعد حفظ أي بلاغ جديد
+//     فشل الـ AI ما يفشّل حفظ البلاغ، نسجّل الخطأ ونكمل
     public void findMatchesForReport(Report report) {
         ReportType oppositeType = report.getType() == ReportType.LOST ? ReportType.FOUND : ReportType.LOST;
 

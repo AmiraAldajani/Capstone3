@@ -3,6 +3,7 @@ package com.example.ejadwebapplication.Service;
 import com.example.ejadwebapplication.Api.ApiException;
 import com.example.ejadwebapplication.DTOIN.CategoryDTOIn;
 import com.example.ejadwebapplication.Model.Category;
+import com.example.ejadwebapplication.Model.Report;
 import com.example.ejadwebapplication.Repository.CategoryRepository;
 import com.example.ejadwebapplication.Repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
