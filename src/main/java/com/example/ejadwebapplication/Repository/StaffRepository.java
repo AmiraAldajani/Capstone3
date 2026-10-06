@@ -21,4 +21,7 @@ public interface StaffRepository extends JpaRepository<Staff, Integer> {
     List<Staff> findAllByIsVerified(Boolean isVerified);
 
     Boolean existsByLocation(Location location);
+
+    // الموظفين الموثّقين بس هم اللي يوصلهم إشعار NEW_REPORT
+    List<Staff> findAllByLocationAndIsVerifiedTrue(Location location);
 }

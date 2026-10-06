@@ -1,8 +1,8 @@
 package com.example.ejadwebapplication.Controller;
 
 import com.example.ejadwebapplication.Api.ApiResponse;
-import com.example.ejadwebapplication.Entity.MatchStatus;
-import com.example.ejadwebapplication.Entity.ReportMatch;
+import com.example.ejadwebapplication.DTOIN.ReportMatchDTOIn;
+import com.example.ejadwebapplication.Enums.MatchStatus;
 import com.example.ejadwebapplication.Service.ReportMatchService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,9 +31,14 @@ public class ReportMatchController {
         return ResponseEntity.status(200).body(reportMatchService.getMatchesByStatus(status));
     }
 
+    @GetMapping("/report/{reportId}")
+    public ResponseEntity<?> getMatchesByReport(@PathVariable Integer reportId) {
+        return ResponseEntity.status(200).body(reportMatchService.getMatchesByReport(reportId));
+    }
+
     @PostMapping("/add")
-    public ResponseEntity<?> addMatch(@RequestBody @Valid ReportMatch match) {
-        reportMatchService.addMatch(match);
+    public ResponseEntity<?> addMatch(@RequestBody @Valid ReportMatchDTOIn dto) {
+        reportMatchService.addMatch(dto);
         return ResponseEntity.status(200).body(new ApiResponse("Match added successfully"));
     }
 

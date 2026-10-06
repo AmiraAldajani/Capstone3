@@ -2,10 +2,7 @@ package com.example.ejadwebapplication.Config;
 
 import com.example.ejadwebapplication.Enums.LocationType;
 import com.example.ejadwebapplication.Model.*;
-import com.example.ejadwebapplication.Repository.AdminRepository;
-import com.example.ejadwebapplication.Repository.LocationRepository;
-import com.example.ejadwebapplication.Repository.StaffRepository;
-import com.example.ejadwebapplication.Repository.UserRepository;
+import com.example.ejadwebapplication.Repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -13,7 +10,6 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 // نعبي بيانات تجريبية أول مرة يشتغل فيها المشروع
-// TODO: لما يخلص العضو 2 و 3، تنضاف هنا Categories و Reports
 @Component
 @RequiredArgsConstructor
 public class DataSeeder implements CommandLineRunner {
@@ -22,10 +18,31 @@ public class DataSeeder implements CommandLineRunner {
     private final AdminRepository adminRepository;
     private final UserRepository userRepository;
     private final StaffRepository staffRepository;
+    private final CategoryRepository categoryRepository;
 
     @Override
     public void run(String... args) {
-        // إذا البيانات موجودة من تشغيل سابق، لا تكررها
+        // كل جزء يتحقق لحاله، عشان لو الأماكن موجودة والتصنيفات لا، تنضاف التصنيفات
+        seedCategories();
+        seedLocationsAndAccounts();
+    }
+
+    private void seedCategories() {
+        if (categoryRepository.count() > 0) {
+            return;
+        }
+        categoryRepository.saveAll(List.of(
+                createCategory("Electronics", "Phones, laptops, headphones, chargers"),
+                createCategory("Wallets", "Wallets and card holders"),
+                createCategory("Bags", "Backpacks, handbags, luggage"),
+                createCategory("Keys", "House keys and car keys"),
+                createCategory("Documents", "IDs, passports, cards and papers"),
+                createCategory("Clothes", "Clothes, abayas, shoes, accessories"),
+                createCategory("Other", "Anything else")
+        ));
+    }
+
+    private void seedLocationsAndAccounts() {
         if (locationRepository.count() > 0) {
             return;
         }
@@ -64,6 +81,13 @@ public class DataSeeder implements CommandLineRunner {
         staffRepository.saveAll(List.of(khalid, noura));
     }
 
+    private Category createCategory(String name, String description) {
+        Category category = new Category();
+        category.setName(name);
+        category.setDescription(description);
+        return category;
+    }
+
     private Location createLocation(String name, String description, String city, LocationType type) {
         Location location = new Location();
         location.setName(name);
@@ -74,7 +98,7 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private <T extends BaseAccount> T fillAccount(T account, String fullName, String username,
-                                                   String email, String password, String phone) {
+                                                  String email, String password, String phone) {
         account.setFullName(fullName);
         account.setUsername(username);
         account.setEmail(email);

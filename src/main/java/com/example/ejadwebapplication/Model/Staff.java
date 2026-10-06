@@ -1,6 +1,5 @@
 package com.example.ejadwebapplication.Model;
 
-import com.example.ejadwebapplication.Entity.Notification;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;

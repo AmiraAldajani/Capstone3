@@ -1,9 +1,10 @@
 package com.example.ejadwebapplication.Service;
 
 import com.example.ejadwebapplication.Api.ApiException;
-import com.example.ejadwebapplication.DTO.CategoryDTO;
+import com.example.ejadwebapplication.DTOIN.CategoryDTOIn;
 import com.example.ejadwebapplication.Model.Category;
 import com.example.ejadwebapplication.Repository.CategoryRepository;
+import com.example.ejadwebapplication.Repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,38 +15,50 @@ import java.util.List;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final ReportRepository reportRepository;
 
-    public List<Category> getAllCategories(){
+    public List<Category> getAllCategories() {
         return categoryRepository.findAll();
     }
 
-    public Category getCategoryById(Integer id){
-        return categoryRepository.findById(id).orElseThrow(() -> new ApiException("Category not found with provided id"));
+    public Category getCategoryById(Integer id) {
+        return findCategory(id);
     }
 
-    public Category addCategory(CategoryDTO categoryDTO){
-
+    public void addCategory(CategoryDTOIn dto) {
+        if (categoryRepository.existsByNameIgnoreCase(dto.getName())) {
+            throw new ApiException("Category name already exists");
+        }
         Category category = new Category();
-
-        category.setName(categoryDTO.getName());
-        category.setDescription(categoryDTO.getDescription());
-        return categoryRepository.save(category);
+        category.setName(dto.getName());
+        category.setDescription(dto.getDescription());
+        categoryRepository.save(category);
     }
 
-    public Category updateCategory(Integer id, CategoryDTO categoryDTO){
-
-        Category category = categoryRepository.findById(id).orElseThrow(()-> new ApiException("Category not found to be updated "));
-
-        category.setName(categoryDTO.getName());
-        category.setDescription(categoryDTO.getDescription());
-        return categoryRepository.save(category);
+    public void updateCategory(Integer id, CategoryDTOIn dto) {
+        Category category = findCategory(id);
+        if (!category.getName().equalsIgnoreCase(dto.getName())
+                && categoryRepository.existsByNameIgnoreCase(dto.getName())) {
+            throw new ApiException("Category name already exists");
+        }
+        category.setName(dto.getName());
+        category.setDescription(dto.getDescription());
+        categoryRepository.save(category);
     }
 
-    public void deleteCategory(Integer id){
-        Category category = categoryRepository.findById(id).orElseThrow(() -> new ApiException("Category not found to be deleted"));
+    public void deleteCategory(Integer id) {
+        Category category = findCategory(id);
+        if (reportRepository.existsByCategory(category)) {
+            throw new ApiException("Cannot delete a category that has reports");
+        }
         categoryRepository.delete(category);
     }
 
-
-
+    private Category findCategory(Integer id) {
+        Category category = categoryRepository.findCategoryById(id);
+        if (category == null) {
+            throw new ApiException("Category not found");
+        }
+        return category;
+    }
 }

@@ -1,4 +1,4 @@
-package com.example.ejadwebapplication.Entity;
+package com.example.ejadwebapplication.Enums;
 
 public enum NotificationType {
 

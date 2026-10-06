@@ -1,6 +1,9 @@
 package com.example.ejadwebapplication.Repository;
 
-import com.example.ejadwebapplication.Entity.Notification;
+import com.example.ejadwebapplication.Model.Notification;
+import com.example.ejadwebapplication.Model.Report;
+import com.example.ejadwebapplication.Model.Staff;
+import com.example.ejadwebapplication.Model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,14 +14,17 @@ public interface NotificationRepository extends JpaRepository<Notification, Inte
 
     Notification findNotificationById(Integer id);
 
-    // User
-    //List<Notification> findAllByUserIdOrderByCreatedAtDesc(Integer userId);
-    //List<Notification> findAllByUserIdAndIsReadFalse(Integer userId);
-    //Integer countByUserIdAndIsReadFalse(Integer userId);
+    // بدون Id لأننا نرسل User كامل
+    List<Notification> findAllByUserOrderByCreatedAtDesc(User user);
+    List<Notification> findAllByUserAndIsReadFalse(User user);
+    Integer countByUserAndIsReadFalse(User user);
 
-    // Staff
-    //List<Notification> findAllByStaffIdOrderByCreatedAtDesc(Integer staffId);
-    //List<Notification> findAllByStaffIdAndIsReadFalse(Integer staffId);
-    //Integer countByStaffIdAndIsReadFalse(Integer staffId);
+    List<Notification> findAllByStaffOrderByCreatedAtDesc(Staff staff);
+    List<Notification> findAllByStaffAndIsReadFalse(Staff staff);
+    Integer countByStaffAndIsReadFalse(Staff staff);
 
+    // تُستخدم داخل @Transactional قبل حذف البلاغ أو الحساب
+    void deleteAllByReport(Report report);
+    void deleteAllByUser(User user);
+    void deleteAllByStaff(Staff staff);
 }

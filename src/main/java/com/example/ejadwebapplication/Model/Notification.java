@@ -1,5 +1,6 @@
-package com.example.ejadwebapplication.Entity;
+package com.example.ejadwebapplication.Model;
 
+import com.example.ejadwebapplication.Enums.NotificationType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -38,11 +39,17 @@ public class Notification {
     @Column(columnDefinition = "datetime not null", updatable = false)
     private LocalDateTime createdAt;
 
-    //private User user;
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 
-    //private Staff staff;
+    @ManyToOne
+    @JoinColumn(name = "staff_id")
+    private Staff staff;
 
-    //private Report report;
+    @ManyToOne
+    @JoinColumn(name = "report_id", nullable = false)
+    private Report report;
 
     @PrePersist
     public void onCreate() {

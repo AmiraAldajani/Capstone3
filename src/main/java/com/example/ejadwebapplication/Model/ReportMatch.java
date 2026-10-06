@@ -1,5 +1,6 @@
-package com.example.ejadwebapplication.Entity;
+package com.example.ejadwebapplication.Model;
 
+import com.example.ejadwebapplication.Enums.MatchStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -40,14 +41,13 @@ public class ReportMatch {
     @Column(columnDefinition = "datetime not null", updatable = false)
     private LocalDateTime createdAt;
 
-    // نفك التعليق بعد ما ينرفع Report
-    //@ManyToOne
-    //@JoinColumn(name = "lost_report_id", nullable = false)
-    //private Report lostReport;
+    @ManyToOne
+    @JoinColumn(name = "lost_report_id", nullable = false)
+    private Report lostReport;
 
-    //@ManyToOne
-    //@JoinColumn(name = "found_report_id", nullable = false)
-    //private Report foundReport;
+    @ManyToOne
+    @JoinColumn(name = "found_report_id", nullable = false)
+    private Report foundReport;
 
     @PrePersist
     public void onCreate() {

@@ -4,9 +4,12 @@ import com.example.ejadwebapplication.Api.ApiException;
 import com.example.ejadwebapplication.DTOIN.AccountDTOIn;
 import com.example.ejadwebapplication.DTOOUT.UserDTOOut;
 import com.example.ejadwebapplication.Model.User;
+import com.example.ejadwebapplication.Repository.NotificationRepository;
+import com.example.ejadwebapplication.Repository.ReportRepository;
 import com.example.ejadwebapplication.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +19,8 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final ReportRepository reportRepository;
+    private final NotificationRepository notificationRepository;
 
     public List<UserDTOOut> getAllUsers() {
         List<UserDTOOut> users = new ArrayList<>();
@@ -70,11 +75,16 @@ public class UserService {
         userRepository.save(user);
     }
 
+    @Transactional
     public void deleteUser(Integer id) {
         User user = userRepository.findUserById(id);
         if (user == null) {
             throw new ApiException("User not found");
         }
+        if (reportRepository.existsByUser(user)) {
+            throw new ApiException("Cannot delete a user who has reports, delete the reports first");
+        }
+        notificationRepository.deleteAllByUser(user);
         userRepository.delete(user);
     }
 
