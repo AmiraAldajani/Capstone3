@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -86,7 +87,12 @@ public class NotificationService {
 
     // إشعار لكل موظف موثّق في أماكن البلاغ
     public void notifyStaffAboutNewReport(Report report) {
-        for (Location location : report.getLocations()) {
+        notifyStaffAtLocations(report, report.getLocations());
+    }
+
+    // تُستخدم من الإضافة والتعديل: عند التعديل نرسل الأماكن اللي انضافت بس
+    public void notifyStaffAtLocations(Report report, Set<Location> locations) {
+        for (Location location : locations) {
             for (Staff staff : staffRepository.findAllByLocationAndIsVerifiedTrue(location)) {
                 // الموظف اللي رفع البلاغ بنفسه ما يحتاج إشعار
                 if (report.getStaff() != null && report.getStaff().getId().equals(staff.getId())) {

@@ -15,4 +15,6 @@ public interface LocationRepository extends JpaRepository<Location, Integer> {
     List<Location> findAllByCityIgnoreCase(String city);
 
     List<Location> findAllByType(LocationType type);
+
+    List<Location> findAllByLatitudeIsNotNullAndLongitudeIsNotNull();
 }

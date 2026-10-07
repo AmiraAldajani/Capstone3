@@ -40,4 +40,6 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
     @Query("select distinct r from Report r join r.locations l " +
             "where r.type = ?1 and r.category = ?2 and r.status = ?3 and l in ?4")
     List<Report> findMatchCandidates(ReportType type, Category category, ReportStatus status, Set<Location> locations);
+
+    List<Report> findAllByTypeAndCategoryAndStatus(ReportType type, Category category, ReportStatus status);
 }

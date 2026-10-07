@@ -72,4 +72,10 @@ public class ReportController {
     public ResponseEntity<?> getReportsByLocation(@PathVariable Integer locationId) {
         return ResponseEntity.status(200).body(reportService.getReportsByLocation(locationId));
     }
+
+    @GetMapping("/nearby-found/{reportId}")
+    public ResponseEntity<?> getNearbyFoundReports(@PathVariable Integer reportId,
+                                                   @RequestParam(defaultValue = "5") Double radiusKm) {
+        return ResponseEntity.status(200).body(reportService.getNearbyFoundReports(reportId, radiusKm));
+    }
 }

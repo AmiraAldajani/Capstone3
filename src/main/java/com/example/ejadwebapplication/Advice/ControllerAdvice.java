@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -87,5 +88,11 @@ public class ControllerAdvice {
     @ExceptionHandler(value = RuntimeException.class)
     public ResponseEntity<ApiResponse> RuntimeException(RuntimeException e) {
         return ResponseEntity.status(400).body(new ApiResponse(e.getMessage()));
+    }
+
+    // Missing a required parameter such as lat or lng
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse> missingServletRequestParameterException(MissingServletRequestParameterException e) {
+        return ResponseEntity.status(400).body(new ApiResponse("Missing parameter: " + e.getParameterName()));
     }
 }

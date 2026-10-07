@@ -85,7 +85,7 @@ public class StaffService {
         staffRepository.save(staff);
     }
 
-    // الموظف يوصله إشعارات NEW_REPORT حتى لو ما رفع بلاغ، فنحذفها أول
+    // الموظف يوصله إشعارات NEW_REPORT حتى لو ما رفع بلاغ
     @Transactional
     public void deleteStaff(Integer id) {
         Staff staff = staffRepository.findStaffById(id);

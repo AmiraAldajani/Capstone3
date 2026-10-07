@@ -32,6 +32,13 @@ public class Location {
     @Column(columnDefinition = "varchar(20) not null")
     private LocationType type;
 
+    // Filled from Google Maps; null allowed for locations added before the integration
+    @Column(columnDefinition = "double")
+    private Double latitude;
+
+    @Column(columnDefinition = "double")
+    private Double longitude;
+
     @OneToMany(mappedBy = "location")
     @JsonIgnore
     private Set<Staff> staff;

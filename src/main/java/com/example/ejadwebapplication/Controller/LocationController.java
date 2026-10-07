@@ -52,4 +52,22 @@ public class LocationController {
     public ResponseEntity<?> getLocationsByType(@PathVariable String type) {
         return ResponseEntity.status(200).body(locationService.getLocationsByType(type));
     }
+
+    // For older locations (like the DataSeeder ones): gets their coordinates from Google
+    @PutMapping("/geocode/{id}")
+    public ResponseEntity<?> geocodeLocation(@PathVariable Integer id) {
+        locationService.geocodeLocation(id);
+        return ResponseEntity.status(200).body(new ApiResponse("Location coordinates updated from Google Maps"));
+    }
+
+    @GetMapping("/nearby")
+    public ResponseEntity<?> getNearbyLocations(@RequestParam Double lat, @RequestParam Double lng,
+                                                @RequestParam(defaultValue = "5") Double radiusKm) {
+        return ResponseEntity.status(200).body(locationService.getNearbyLocations(lat, lng, radiusKm));
+    }
+
+    @GetMapping("/reverse-geocode")
+    public ResponseEntity<?> reverseGeocode(@RequestParam Double lat, @RequestParam Double lng) {
+        return ResponseEntity.status(200).body(locationService.reverseGeocode(lat, lng));
+    }
 }

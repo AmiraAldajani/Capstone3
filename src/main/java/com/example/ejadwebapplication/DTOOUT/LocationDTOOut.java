@@ -11,4 +11,7 @@ public class LocationDTOOut {
     private String description;
     private String city;
     private String type;
+    private Double latitude;
+    private Double longitude;
+    private String directionsUrl;
 }
