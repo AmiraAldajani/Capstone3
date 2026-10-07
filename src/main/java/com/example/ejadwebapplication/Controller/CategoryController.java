@@ -1,4 +1,5 @@
 package com.example.ejadwebapplication.Controller;
+
 import com.example.ejadwebapplication.Api.ApiResponse;
 import com.example.ejadwebapplication.DTOIN.CategoryDTOIn;
 import com.example.ejadwebapplication.Service.CategoryService;
@@ -56,10 +57,14 @@ public class CategoryController {
                 .body(categoryService.getReportsByCategory(categoryId));
     }
 
+    @GetMapping("/statistics")
+    public ResponseEntity<?> getCategoryStatistics() {
+        return ResponseEntity.status(200).body(categoryService.getCategoryStatistics());
+    }
+
     @GetMapping("/{categoryId}/report-count")
     public ResponseEntity<?> getReportCountByCategory(@PathVariable Integer categoryId) {
         return ResponseEntity.status(200)
                 .body(categoryService.getReportCountByCategory(categoryId));
     }
 }
-

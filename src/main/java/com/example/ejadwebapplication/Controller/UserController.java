@@ -42,4 +42,16 @@ public class UserController {
         userService.deleteUser(id);
         return ResponseEntity.status(200).body(new ApiResponse("User deleted successfully"));
     }
+
+    // ================= Extra =================
+
+    @GetMapping("/{userId}/statistics")
+    public ResponseEntity<?> getUserStatistics(@PathVariable Integer userId) {
+        return ResponseEntity.status(200).body(userService.getUserStatistics(userId));
+    }
+
+    @GetMapping("/search/{name}")
+    public ResponseEntity<?> searchUsers(@PathVariable String name) {
+        return ResponseEntity.status(200).body(userService.searchUsers(name));
+    }
 }

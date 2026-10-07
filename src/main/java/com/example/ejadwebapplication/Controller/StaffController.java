@@ -52,4 +52,17 @@ public class StaffController {
     public ResponseEntity<?> getUnverifiedStaff() {
         return ResponseEntity.status(200).body(staffService.getUnverifiedStaff());
     }
+
+    // ================= Extra =================
+
+    @PutMapping("/{staffId}/transfer/{locationId}")
+    public ResponseEntity<?> transferStaff(@PathVariable Integer staffId, @PathVariable Integer locationId) {
+        staffService.transferStaff(staffId, locationId);
+        return ResponseEntity.status(200).body(new ApiResponse("Staff transferred successfully, waiting for admin verification"));
+    }
+
+    @GetMapping("/verified")
+    public ResponseEntity<?> getVerifiedStaff() {
+        return ResponseEntity.status(200).body(staffService.getVerifiedStaff());
+    }
 }

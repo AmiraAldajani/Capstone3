@@ -48,4 +48,34 @@ public class AdminController {
         adminService.verifyStaff(adminId, staffId);
         return ResponseEntity.status(200).body(new ApiResponse("Staff verified successfully"));
     }
+
+    // ================= Extra =================
+
+    @PutMapping("/{adminId}/unverify-staff/{staffId}")
+    public ResponseEntity<?> unverifyStaff(@PathVariable Integer adminId, @PathVariable Integer staffId) {
+        adminService.unverifyStaff(adminId, staffId);
+        return ResponseEntity.status(200).body(new ApiResponse("Staff verification removed successfully"));
+    }
+
+    @GetMapping("/{adminId}/statistics")
+    public ResponseEntity<?> getStatistics(@PathVariable Integer adminId) {
+        return ResponseEntity.status(200).body(adminService.getStatistics(adminId));
+    }
+
+    @PutMapping("/{adminId}/close-old-reports/{days}")
+    public ResponseEntity<?> closeOldReports(@PathVariable Integer adminId, @PathVariable Integer days) {
+        Integer count = adminService.closeOldReports(adminId, days);
+        return ResponseEntity.status(200).body(new ApiResponse(count + " old reports closed successfully"));
+    }
+
+    @GetMapping("/{adminId}/success-rate")
+    public ResponseEntity<?> getSuccessRate(@PathVariable Integer adminId) {
+        return ResponseEntity.status(200).body(adminService.getSuccessRate(adminId));
+    }
+
+    @PutMapping("/{adminId}/verify-all/{locationId}")
+    public ResponseEntity<?> verifyAllStaffAtLocation(@PathVariable Integer adminId, @PathVariable Integer locationId) {
+        Integer count = adminService.verifyAllStaffAtLocation(adminId, locationId);
+        return ResponseEntity.status(200).body(new ApiResponse(count + " staff verified successfully"));
+    }
 }

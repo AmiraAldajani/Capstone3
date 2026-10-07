@@ -2,6 +2,7 @@ package com.example.ejadwebapplication.Service;
 
 import com.example.ejadwebapplication.Api.ApiException;
 import com.example.ejadwebapplication.DTOIN.CategoryDTOIn;
+import com.example.ejadwebapplication.Enums.ReportStatus;
 import com.example.ejadwebapplication.Model.Category;
 import com.example.ejadwebapplication.Model.Report;
 import com.example.ejadwebapplication.Repository.CategoryRepository;
@@ -10,7 +11,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -54,6 +57,20 @@ public class CategoryService {
             throw new ApiException("Cannot delete a category that has reports");
         }
         categoryRepository.delete(category);
+    }
+
+    // كم بلاغ في كل تصنيف (أكثر الأغراض ضياعاً)
+    public List<Map<String, Object>> getCategoryStatistics() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Category category : categoryRepository.findAll()) {
+            Map<String, Object> stats = new LinkedHashMap<>();
+            stats.put("categoryId", category.getId());
+            stats.put("categoryName", category.getName());
+            stats.put("totalReports", reportRepository.countByCategory(category));
+            stats.put("openReports", reportRepository.countByCategoryAndStatus(category, ReportStatus.OPEN));
+            result.add(stats);
+        }
+        return result;
     }
 
     public List<Report> getReportsByCategory(Integer categoryId) {

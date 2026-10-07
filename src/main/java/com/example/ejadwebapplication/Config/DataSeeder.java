@@ -49,7 +49,7 @@ public class DataSeeder implements CommandLineRunner {
 
         Location airport = createLocation("King Khalid International Airport",
                 "Lost and found desk, Terminal 1", "Riyadh", LocationType.AIRPORT);
-        Location mall = createLocation("Riyadh Park",
+        Location mall = createLocation("Al-Hamra mall",
                 "Customer service desk, ground floor", "Riyadh", LocationType.MALL);
         Location metro = createLocation("KAFD Metro Station",
                 "Station security office", "Riyadh", LocationType.METRO);
@@ -98,7 +98,7 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private <T extends BaseAccount> T fillAccount(T account, String fullName, String username,
-                                                  String email, String password, String phone) {
+                                                   String email, String password, String phone) {
         account.setFullName(fullName);
         account.setUsername(username);
         account.setEmail(email);

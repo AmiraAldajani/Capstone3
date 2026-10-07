@@ -9,9 +9,11 @@ import com.example.ejadwebapplication.Repository.StaffRepository;
 import com.example.ejadwebapplication.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -58,6 +60,31 @@ public class NotificationService {
         markAsRead(notification);
     }
 
+    public void markAllAsReadByUser(Integer userId) {
+        List<Notification> unread = notificationRepository.findAllByUserAndIsReadFalse(findUser(userId));
+        for (Notification notification : unread) {
+            notification.setIsRead(true);
+        }
+        notificationRepository.saveAll(unread);
+    }
+
+    // derived delete لازم يكون داخل transaction
+    @Transactional
+    public void deleteReadByUser(Integer userId) {
+        notificationRepository.deleteAllByUserAndIsReadTrue(findUser(userId));
+    }
+
+    public List<NotificationDTOOut> getUserNotificationsByType(Integer userId, String type) {
+        NotificationType notificationType;
+        try {
+            notificationType = NotificationType.valueOf(type.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ApiException("Type must be NEW_REPORT, MATCH_FOUND or MATCH_CONFIRMED");
+        }
+        return convertListToDTO(notificationRepository
+                .findAllByUserAndTypeOrderByCreatedAtDesc(findUser(userId), notificationType));
+    }
+
     // ================= Staff =================
 
     public List<NotificationDTOOut> getStaffNotifications(Integer staffId) {
@@ -82,11 +109,29 @@ public class NotificationService {
         markAsRead(notification);
     }
 
+    public void markAllAsReadByStaff(Integer staffId) {
+        List<Notification> unread = notificationRepository.findAllByStaffAndIsReadFalse(findStaff(staffId));
+        for (Notification notification : unread) {
+            notification.setIsRead(true);
+        }
+        notificationRepository.saveAll(unread);
+    }
+
+    @Transactional
+    public void deleteReadByStaff(Integer staffId) {
+        notificationRepository.deleteAllByStaffAndIsReadTrue(findStaff(staffId));
+    }
+
     // ================= للاستخدام الداخلي (من ReportService و ReportMatchService) =================
 
     // إشعار لكل موظف موثّق في أماكن البلاغ
     public void notifyStaffAboutNewReport(Report report) {
-        for (Location location : report.getLocations()) {
+        notifyStaffAtLocations(report, report.getLocations());
+    }
+
+    // تُستخدم من الإضافة والتعديل: عند التعديل نرسل الأماكن اللي انضافت بس
+    public void notifyStaffAtLocations(Report report, Set<Location> locations) {
+        for (Location location : locations) {
             for (Staff staff : staffRepository.findAllByLocationAndIsVerifiedTrue(location)) {
                 // الموظف اللي رفع البلاغ بنفسه ما يحتاج إشعار
                 if (report.getStaff() != null && report.getStaff().getId().equals(staff.getId())) {

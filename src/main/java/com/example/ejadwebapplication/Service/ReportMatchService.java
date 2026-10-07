@@ -8,10 +8,15 @@ import com.example.ejadwebapplication.Enums.MatchStatus;
 import com.example.ejadwebapplication.Enums.NotificationType;
 import com.example.ejadwebapplication.Enums.ReportStatus;
 import com.example.ejadwebapplication.Enums.ReportType;
+import com.example.ejadwebapplication.Model.Location;
 import com.example.ejadwebapplication.Model.Report;
 import com.example.ejadwebapplication.Model.ReportMatch;
+import com.example.ejadwebapplication.Model.Staff;
+import com.example.ejadwebapplication.Model.User;
 import com.example.ejadwebapplication.Repository.ReportMatchRepository;
 import com.example.ejadwebapplication.Repository.ReportRepository;
+import com.example.ejadwebapplication.Repository.StaffRepository;
+import com.example.ejadwebapplication.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,6 +37,9 @@ public class ReportMatchService {
     private final ReportRepository reportRepository;
     private final NotificationService notificationService;
     private final AiService aiService;
+    private final UserRepository userRepository;
+    private final StaffRepository staffRepository;
+    private final GoogleMapsService googleMapsService;
 
     public List<ReportMatchDTOOut> getAllMatches() {
         return convertListToDTO(reportMatchRepository.findAll());
@@ -41,8 +49,14 @@ public class ReportMatchService {
         return convertToDTO(findMatch(id));
     }
 
-    public List<ReportMatchDTOOut> getMatchesByStatus(MatchStatus status) {
-        return convertListToDTO(reportMatchRepository.findAllByStatus(status));
+    public List<ReportMatchDTOOut> getMatchesByStatus(String status) {
+        MatchStatus matchStatus;
+        try {
+            matchStatus = MatchStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ApiException("Status must be SUGGESTED, CONFIRMED or REJECTED");
+        }
+        return convertListToDTO(reportMatchRepository.findAllByStatus(matchStatus));
     }
 
     public List<ReportMatchDTOOut> getMatchesByReport(Integer reportId) {
@@ -72,13 +86,21 @@ public class ReportMatchService {
         saveMatch(lostReport, foundReport, dto.getSimilarityScore(), dto.getAiReason());
     }
 
-//     يُستدعى من ReportService بعد حفظ أي بلاغ جديد
-//     فشل الـ AI ما يفشّل حفظ البلاغ، نسجّل الخطأ ونكمل
+    // يُستدعى من ReportService بعد حفظ أي بلاغ جديد
+    // فشل الـ AI ما يفشّل حفظ البلاغ، نسجّل الخطأ ونكمل
+    // يُستدعى من ReportService بعد إضافة أو تعديل أي بلاغ
+// فشل الـ AI ما يفشّل حفظ البلاغ، نسجّل الخطأ ونكمل
     public void findMatchesForReport(Report report) {
         ReportType oppositeType = report.getType() == ReportType.LOST ? ReportType.FOUND : ReportType.LOST;
 
-        List<Report> candidates = reportRepository.findMatchCandidates(
-                oppositeType, report.getCategory(), ReportStatus.OPEN, report.getLocations());
+        // اللي بينه وبين البلاغ تطابق من قبل (مقترح أو مرفوض) ما نرسله للـ AI مرة ثانية
+        List<Report> candidates = new ArrayList<>();
+        for (Report candidate : reportRepository.findMatchCandidates(
+                oppositeType, report.getCategory(), ReportStatus.OPEN, report.getLocations())) {
+            if (!matchExists(report, candidate)) {
+                candidates.add(candidate);
+            }
+        }
         if (candidates.isEmpty()) {
             return;
         }
@@ -100,13 +122,13 @@ public class ReportMatchService {
             if (other == null) {
                 continue;
             }
-
-            Report lostReport = report.getType() == ReportType.LOST ? report : other;
-            Report foundReport = report.getType() == ReportType.FOUND ? report : other;
-            if (reportMatchRepository.existsByLostReportAndFoundReport(lostReport, foundReport)) {
+            // لو الـ AI كرر نفس الـ id مرتين
+            if (matchExists(report, other)) {
                 continue;
             }
 
+            Report lostReport = report.getType() == ReportType.LOST ? report : other;
+            Report foundReport = report.getType() == ReportType.FOUND ? report : other;
             saveMatch(lostReport, foundReport, Math.min(result.getScore(), 100.0), result.getReason());
         }
     }
@@ -134,8 +156,15 @@ public class ReportMatchService {
         rejectOtherSuggestions(lostReport, match);
         rejectOtherSuggestions(foundReport, match);
 
-        notificationService.notifyReportOwner(lostReport, NotificationType.MATCH_CONFIRMED,
-                "Match confirmed for your report: " + lostReport.getTitle());
+        // The item is at the found report's location (FOUND has exactly one), so send the lost owner a directions link
+        Location itemLocation = foundReport.getLocations().iterator().next();
+        String message = "Match confirmed for your report: " + lostReport.getTitle()
+                + ". Item location: " + itemLocation.getName();
+        String directionsUrl = googleMapsService.buildDirectionsUrl(itemLocation);
+        if (directionsUrl != null) {
+            message += " - Directions: " + directionsUrl;
+        }
+        notificationService.notifyReportOwner(lostReport, NotificationType.MATCH_CONFIRMED, message);
         notificationService.notifyReportOwner(foundReport, NotificationType.MATCH_CONFIRMED,
                 "Match confirmed for your report: " + foundReport.getTitle());
     }
@@ -157,7 +186,70 @@ public class ReportMatchService {
         reportMatchRepository.delete(match);
     }
 
+    // ================= Extra =================
+
+    // الاقتراحات اللي لسا ما انحسمت لبلاغ معيّن، الأعلى نسبة أول
+    public List<ReportMatchDTOOut> getSuggestedMatchesForReport(Integer reportId) {
+        Report report = findReport(reportId);
+        List<ReportMatch> suggested = new ArrayList<>();
+        for (ReportMatch match : reportMatchRepository.findAllByLostReportOrFoundReport(report, report)) {
+            if (match.getStatus() == MatchStatus.SUGGESTED) {
+                suggested.add(match);
+            }
+        }
+        suggested.sort((a, b) -> Double.compare(b.getSimilarityScore(), a.getSimilarityScore()));
+        return convertListToDTO(suggested);
+    }
+
+    public List<ReportMatchDTOOut> getMatchesByUser(Integer userId) {
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("User not found");
+        }
+        return convertListToDTO(reportMatchRepository.findAllByReportOwner(user));
+    }
+
+    // نعيد المطابقة يدوياً (مثلاً انضافت بلاغات جديدة بعد بلاغي)
+    @Transactional
+    public List<ReportMatchDTOOut> rematchReport(Integer reportId) {
+        Report report = findReport(reportId);
+        if (report.getStatus() != ReportStatus.OPEN) {
+            throw new ApiException("Only open reports can be matched");
+        }
+        findMatchesForReport(report);
+        return getMatchesByReport(reportId);
+    }
+
+    // ================= Extra 2 =================
+
+    // التطابقات اللي الغرض فيها موجود عند مكان الموظف، عشان يجهّزه للتسليم
+    public List<ReportMatchDTOOut> getMatchesForStaff(Integer staffId) {
+        Staff staff = staffRepository.findStaffById(staffId);
+        if (staff == null) {
+            throw new ApiException("Staff not found");
+        }
+        if (staff.getLocation() == null) {
+            throw new ApiException("Staff is not assigned to a location");
+        }
+        return convertListToDTO(reportMatchRepository.findAllByFoundReportLocation(staff.getLocation()));
+    }
+
+    public List<ReportMatchDTOOut> getHighConfidenceMatches(Double minScore) {
+        if (minScore < 0 || minScore > 100) {
+            throw new ApiException("Score must be between 0 and 100");
+        }
+        return convertListToDTO(reportMatchRepository
+                .findAllBySimilarityScoreGreaterThanEqualOrderBySimilarityScoreDesc(minScore));
+    }
+
     // ================= Helpers =================
+
+    // هل فيه تطابق محفوظ بين البلاغين (أي حالة)
+    private boolean matchExists(Report report, Report other) {
+        Report lostReport = report.getType() == ReportType.LOST ? report : other;
+        Report foundReport = report.getType() == ReportType.FOUND ? report : other;
+        return reportMatchRepository.existsByLostReportAndFoundReport(lostReport, foundReport);
+    }
 
     private void saveMatch(Report lostReport, Report foundReport, Double score, String reason) {
         ReportMatch match = new ReportMatch();

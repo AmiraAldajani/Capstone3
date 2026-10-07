@@ -3,6 +3,7 @@ package com.example.ejadwebapplication.Service;
 import com.example.ejadwebapplication.Api.ApiException;
 import com.example.ejadwebapplication.DTOIN.StaffDTOIn;
 import com.example.ejadwebapplication.DTOOUT.StaffDTOOut;
+import com.example.ejadwebapplication.Enums.ReportStatus;
 import com.example.ejadwebapplication.Model.Location;
 import com.example.ejadwebapplication.Model.Staff;
 import com.example.ejadwebapplication.Repository.LocationRepository;
@@ -85,7 +86,7 @@ public class StaffService {
         staffRepository.save(staff);
     }
 
-    // الموظف يوصله إشعارات NEW_REPORT حتى لو ما رفع بلاغ، فنحذفها أول
+    // الموظف يوصله إشعارات NEW_REPORT حتى لو ما رفع بلاغ
     @Transactional
     public void deleteStaff(Integer id) {
         Staff staff = staffRepository.findStaffById(id);
@@ -109,6 +110,34 @@ public class StaffService {
 
     public List<StaffDTOOut> getUnverifiedStaff() {
         return convertListToDTO(staffRepository.findAllByIsVerified(false));
+    }
+
+    // ================= Extra =================
+
+    // نقل الموظف لمكان ثاني، ويرجع غير موثّق لين يوافق الأدمن على مكانه الجديد
+    public void transferStaff(Integer staffId, Integer locationId) {
+        Staff staff = staffRepository.findStaffById(staffId);
+        if (staff == null) {
+            throw new ApiException("Staff not found");
+        }
+        Location location = locationRepository.findLocationById(locationId);
+        if (location == null) {
+            throw new ApiException("Location not found");
+        }
+        if (staff.getLocation() != null && staff.getLocation().getId().equals(location.getId())) {
+            throw new ApiException("Staff is already assigned to this location");
+        }
+        // بلاغاته المفتوحة في المكان القديم ما يقدر يعدّلها بعد النقل
+        if (reportRepository.existsByStaffAndStatus(staff, ReportStatus.OPEN)) {
+            throw new ApiException("Staff has open reports, close them before transferring");
+        }
+        staff.setLocation(location);
+        staff.setIsVerified(false);
+        staffRepository.save(staff);
+    }
+
+    public List<StaffDTOOut> getVerifiedStaff() {
+        return convertListToDTO(staffRepository.findAllByIsVerified(true));
     }
 
     private List<StaffDTOOut> convertListToDTO(List<Staff> staffList) {

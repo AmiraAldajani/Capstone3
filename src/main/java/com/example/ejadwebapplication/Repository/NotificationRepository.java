@@ -1,5 +1,6 @@
 package com.example.ejadwebapplication.Repository;
 
+import com.example.ejadwebapplication.Enums.NotificationType;
 import com.example.ejadwebapplication.Model.Notification;
 import com.example.ejadwebapplication.Model.Report;
 import com.example.ejadwebapplication.Model.Staff;
@@ -27,4 +28,11 @@ public interface NotificationRepository extends JpaRepository<Notification, Inte
     void deleteAllByReport(Report report);
     void deleteAllByUser(User user);
     void deleteAllByStaff(Staff staff);
+
+    // المستخدم يمسح الإشعارات المقروءة
+    void deleteAllByUserAndIsReadTrue(User user);
+
+    void deleteAllByStaffAndIsReadTrue(Staff staff);
+
+    List<Notification> findAllByUserAndTypeOrderByCreatedAtDesc(User user, NotificationType type);
 }
