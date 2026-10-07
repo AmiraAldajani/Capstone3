@@ -104,10 +104,17 @@ Endpoints for reports, matching and notifications will be added as those modules
 | Amira | Test |
 |  | ...... |
 |  | ...... |
-| Fajr | ...... |
-|  | ...... |
-|  | ...... |
-| Turki |...... |
+| Fajr | `GET /api/v1/report/type/{type}` |
+|  | `GET /api/v1/report/category/{categoryId}` |
+|  | `GET /api/v1/report/location/{locationId}` |
+|  | `GET /api/v1/report/date/{date}` |
+|  | `GET /api/v1/report/date-range` |
+|  | `GET /api/v1/report/search/title` |
+|  | `GET /api/v1/report/search/description` |
+|  | `GET /api/v1/report/status/{status}` |
+|  | `GET /api/v1/category/{categoryId}/reports` |
+|  | `GET /api/v1/category/{categoryId}/report-count` |
+| Turki | ...... |
 |  | ...... |
 |  | ...... |
 
