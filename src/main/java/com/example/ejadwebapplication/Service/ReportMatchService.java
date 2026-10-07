@@ -8,6 +8,7 @@ import com.example.ejadwebapplication.Enums.MatchStatus;
 import com.example.ejadwebapplication.Enums.NotificationType;
 import com.example.ejadwebapplication.Enums.ReportStatus;
 import com.example.ejadwebapplication.Enums.ReportType;
+import com.example.ejadwebapplication.Model.Location;
 import com.example.ejadwebapplication.Model.Report;
 import com.example.ejadwebapplication.Model.ReportMatch;
 import com.example.ejadwebapplication.Model.Staff;
@@ -38,6 +39,7 @@ public class ReportMatchService {
     private final AiService aiService;
     private final UserRepository userRepository;
     private final StaffRepository staffRepository;
+    private final GoogleMapsService googleMapsService;
 
     public List<ReportMatchDTOOut> getAllMatches() {
         return convertListToDTO(reportMatchRepository.findAll());
@@ -86,11 +88,19 @@ public class ReportMatchService {
 
     // يُستدعى من ReportService بعد حفظ أي بلاغ جديد
     // فشل الـ AI ما يفشّل حفظ البلاغ، نسجّل الخطأ ونكمل
+    // يُستدعى من ReportService بعد إضافة أو تعديل أي بلاغ
+// فشل الـ AI ما يفشّل حفظ البلاغ، نسجّل الخطأ ونكمل
     public void findMatchesForReport(Report report) {
         ReportType oppositeType = report.getType() == ReportType.LOST ? ReportType.FOUND : ReportType.LOST;
 
-        List<Report> candidates = reportRepository.findMatchCandidates(
-                oppositeType, report.getCategory(), ReportStatus.OPEN, report.getLocations());
+        // اللي بينه وبين البلاغ تطابق من قبل (مقترح أو مرفوض) ما نرسله للـ AI مرة ثانية
+        List<Report> candidates = new ArrayList<>();
+        for (Report candidate : reportRepository.findMatchCandidates(
+                oppositeType, report.getCategory(), ReportStatus.OPEN, report.getLocations())) {
+            if (!matchExists(report, candidate)) {
+                candidates.add(candidate);
+            }
+        }
         if (candidates.isEmpty()) {
             return;
         }
@@ -112,13 +122,13 @@ public class ReportMatchService {
             if (other == null) {
                 continue;
             }
-
-            Report lostReport = report.getType() == ReportType.LOST ? report : other;
-            Report foundReport = report.getType() == ReportType.FOUND ? report : other;
-            if (reportMatchRepository.existsByLostReportAndFoundReport(lostReport, foundReport)) {
+            // لو الـ AI كرر نفس الـ id مرتين
+            if (matchExists(report, other)) {
                 continue;
             }
 
+            Report lostReport = report.getType() == ReportType.LOST ? report : other;
+            Report foundReport = report.getType() == ReportType.FOUND ? report : other;
             saveMatch(lostReport, foundReport, Math.min(result.getScore(), 100.0), result.getReason());
         }
     }
@@ -146,8 +156,15 @@ public class ReportMatchService {
         rejectOtherSuggestions(lostReport, match);
         rejectOtherSuggestions(foundReport, match);
 
-        notificationService.notifyReportOwner(lostReport, NotificationType.MATCH_CONFIRMED,
-                "Match confirmed for your report: " + lostReport.getTitle());
+        // The item is at the found report's location (FOUND has exactly one), so send the lost owner a directions link
+        Location itemLocation = foundReport.getLocations().iterator().next();
+        String message = "Match confirmed for your report: " + lostReport.getTitle()
+                + ". Item location: " + itemLocation.getName();
+        String directionsUrl = googleMapsService.buildDirectionsUrl(itemLocation);
+        if (directionsUrl != null) {
+            message += " - Directions: " + directionsUrl;
+        }
+        notificationService.notifyReportOwner(lostReport, NotificationType.MATCH_CONFIRMED, message);
         notificationService.notifyReportOwner(foundReport, NotificationType.MATCH_CONFIRMED,
                 "Match confirmed for your report: " + foundReport.getTitle());
     }
@@ -226,6 +243,13 @@ public class ReportMatchService {
     }
 
     // ================= Helpers =================
+
+    // هل فيه تطابق محفوظ بين البلاغين (أي حالة)
+    private boolean matchExists(Report report, Report other) {
+        Report lostReport = report.getType() == ReportType.LOST ? report : other;
+        Report foundReport = report.getType() == ReportType.FOUND ? report : other;
+        return reportMatchRepository.existsByLostReportAndFoundReport(lostReport, foundReport);
+    }
 
     private void saveMatch(Report lostReport, Report foundReport, Double score, String reason) {
         ReportMatch match = new ReportMatch();

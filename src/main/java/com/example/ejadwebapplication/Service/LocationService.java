@@ -2,7 +2,9 @@ package com.example.ejadwebapplication.Service;
 
 import com.example.ejadwebapplication.Api.ApiException;
 import com.example.ejadwebapplication.DTOIN.LocationDTOIn;
+import com.example.ejadwebapplication.DTOOUT.AddressDTOOut;
 import com.example.ejadwebapplication.DTOOUT.LocationDTOOut;
+import com.example.ejadwebapplication.DTOOUT.NearbyLocationDTOOut;
 import com.example.ejadwebapplication.Enums.LocationType;
 import com.example.ejadwebapplication.Enums.ReportStatus;
 import com.example.ejadwebapplication.Model.Location;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -24,6 +27,7 @@ public class LocationService {
     private final LocationRepository locationRepository;
     private final StaffRepository staffRepository;
     private final ReportRepository reportRepository;
+    private final GoogleMapsService googleMapsService;
 
     public List<LocationDTOOut> getAllLocations() {
         return convertListToDTO(locationRepository.findAll());
@@ -43,6 +47,7 @@ public class LocationService {
         location.setDescription(dto.getDescription());
         location.setCity(dto.getCity());
         location.setType(LocationType.valueOf(dto.getType()));
+        setCoordinates(location, dto);
         locationRepository.save(location);
     }
 
@@ -51,10 +56,19 @@ public class LocationService {
         if (location == null) {
             throw new ApiException("Location not found");
         }
+        // نعرف قبل التعديل هل المكان نفسه تغيّر
+        boolean placeChanged = !location.getName().equalsIgnoreCase(dto.getName())
+                || !location.getCity().equalsIgnoreCase(dto.getCity());
+
         location.setName(dto.getName());
         location.setDescription(dto.getDescription());
         location.setCity(dto.getCity());
         location.setType(LocationType.valueOf(dto.getType()));
+
+        // ما نكلّم قوقل إلا إذا لزم: إحداثيات يدوية، أو تغيّر الاسم أو المدينة
+        if (placeChanged || dto.getLatitude() != null || dto.getLongitude() != null) {
+            setCoordinates(location, dto);
+        }
         locationRepository.save(location);
     }
 
@@ -117,6 +131,59 @@ public class LocationService {
         return result;
     }
 
+    // ================= Google Maps =================
+
+    // للأماكن اللي انضافت قبل الربط مع قوقل (مثل بيانات الـ DataSeeder)
+    public void geocodeLocation(Integer id) {
+        Location location = locationRepository.findLocationById(id);
+        if (location == null) {
+            throw new ApiException("Location not found");
+        }
+        AddressDTOOut address = googleMapsService.geocode(location.getName() + ", " + location.getCity());
+        location.setLatitude(address.getLatitude());
+        location.setLongitude(address.getLongitude());
+        locationRepository.save(location);
+    }
+
+    // أقرب الأماكن (مكاتب المفقودات) لموقع المستخدم، الأقرب أول
+    public List<NearbyLocationDTOOut> getNearbyLocations(Double lat, Double lng, Double radiusKm) {
+        googleMapsService.validateCoordinates(lat, lng);
+        googleMapsService.validateRadius(radiusKm);
+
+        List<NearbyLocationDTOOut> result = new ArrayList<>();
+        for (Location location : locationRepository.findAllByLatitudeIsNotNullAndLongitudeIsNotNull()) {
+            double distance = googleMapsService.distanceKm(lat, lng,
+                    location.getLatitude(), location.getLongitude());
+            if (distance <= radiusKm) {
+                result.add(new NearbyLocationDTOOut(distance, convertToDTO(location)));
+            }
+        }
+        result.sort(Comparator.comparing(NearbyLocationDTOOut::getDistanceKm));
+        return result;
+    }
+
+    // يحوّل موقع الجوال لعنوان مقروء + اسم المدينة
+    public AddressDTOOut reverseGeocode(Double lat, Double lng) {
+        return googleMapsService.reverseGeocode(lat, lng);
+    }
+
+    // ================= Helpers =================
+
+    // لو الأدمن أرسل الإحداثيات نعتمدها، غير كذا نطلبها من Google Maps
+    private void setCoordinates(Location location, LocationDTOIn dto) {
+        if ((dto.getLatitude() == null) != (dto.getLongitude() == null)) {
+            throw new ApiException("Send both latitude and longitude, or neither");
+        }
+        if (dto.getLatitude() != null) {
+            location.setLatitude(dto.getLatitude());
+            location.setLongitude(dto.getLongitude());
+            return;
+        }
+        AddressDTOOut address = googleMapsService.geocode(dto.getName() + ", " + dto.getCity());
+        location.setLatitude(address.getLatitude());
+        location.setLongitude(address.getLongitude());
+    }
+
     private List<LocationDTOOut> convertListToDTO(List<Location> locations) {
         List<LocationDTOOut> result = new ArrayList<>();
         for (Location location : locations) {
@@ -127,6 +194,8 @@ public class LocationService {
 
     private LocationDTOOut convertToDTO(Location location) {
         return new LocationDTOOut(location.getId(), location.getName(), location.getDescription(),
-                location.getCity(), location.getType().name());
+                location.getCity(), location.getType().name(),
+                location.getLatitude(), location.getLongitude(),
+                googleMapsService.buildDirectionsUrl(location));
     }
 }

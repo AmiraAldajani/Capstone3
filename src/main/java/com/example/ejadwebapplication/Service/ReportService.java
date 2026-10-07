@@ -4,6 +4,7 @@ import com.example.ejadwebapplication.Api.ApiException;
 import com.example.ejadwebapplication.DTO.ImageAnalysisDTO;
 import com.example.ejadwebapplication.DTOIN.ReportDTOIn;
 import com.example.ejadwebapplication.DTOOUT.LocationDTOOut;
+import com.example.ejadwebapplication.DTOOUT.NearbyReportDTOOut;
 import com.example.ejadwebapplication.DTOOUT.ReportDTOOut;
 import com.example.ejadwebapplication.Enums.MatchStatus;
 import com.example.ejadwebapplication.Enums.ReportStatus;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +38,7 @@ public class ReportService {
     private final NotificationService notificationService;
     private final ReportMatchService reportMatchService;
     private final AiService aiService;
+    private final GoogleMapsService googleMapsService;
 
     public List<ReportDTOOut> getAllReports() {
         return convertListToDTO(reportRepository.findAll());
@@ -63,14 +66,35 @@ public class ReportService {
         return convertToDTO(saved);
     }
 
+    // لو انضاف مكان جديد، موظفينه يوصلهم إشعار
     // التعديل يغيّر التفاصيل بس، أما النوع وصاحب البلاغ يتجاهلهم
+// بعد التعديل: إشعار لموظفين الأماكن الجديدة + نبحث عن تطابقات على التفاصيل الجديدة
+    @Transactional
     public ReportDTOOut updateReport(Integer id, ReportDTOIn dto) {
         Report report = findReport(id);
         if (report.getStatus() != ReportStatus.OPEN) {
             throw new ApiException("Only open reports can be updated");
         }
+
+        // نحفظ ids الأماكن القديمة قبل ما fillDetails يستبدلها
+        Set<Integer> oldLocationIds = new HashSet<>();
+        for (Location location : report.getLocations()) {
+            oldLocationIds.add(location.getId());
+        }
+
         fillDetails(report, dto, report.getType());
-        return convertToDTO(reportRepository.save(report));
+        Report saved = reportRepository.save(report);
+
+        // الأماكن اللي ما كانت موجودة قبل التعديل
+        Set<Location> addedLocations = new HashSet<>();
+        for (Location location : saved.getLocations()) {
+            if (!oldLocationIds.contains(location.getId())) {
+                addedLocations.add(location);
+            }
+        }
+        notificationService.notifyStaffAtLocations(saved, addedLocations);
+        reportMatchService.findMatchesForReport(saved);
+        return convertToDTO(saved);
     }
 
     // نحذف الإشعارات والتطابقات أول، لأنها تأشر على البلاغ (foreign key)
@@ -420,7 +444,9 @@ public class ReportService {
         if (report.getLocations() != null) {
             for (Location location : report.getLocations()) {
                 locations.add(new LocationDTOOut(location.getId(), location.getName(),
-                        location.getDescription(), location.getCity(), location.getType().name()));
+                        location.getDescription(), location.getCity(), location.getType().name(),
+                        location.getLatitude(), location.getLongitude(),
+                        googleMapsService.buildDirectionsUrl(location)));
             }
         }
 
@@ -431,4 +457,45 @@ public class ReportService {
                 report.getCategory().getId(), report.getCategory().getName(),
                 locations);
     }
+    public List<NearbyReportDTOOut> getNearbyFoundReports(Integer reportId, Double radiusKm) {
+        googleMapsService.validateRadius(radiusKm);
+        Report lostReport = findReport(reportId);
+        if (lostReport.getType() != ReportType.LOST) {
+            throw new ApiException("Nearby search is only for LOST reports");
+        }
+        if (lostReport.getStatus() != ReportStatus.OPEN) {
+            throw new ApiException("Only open reports can search for nearby items");
+        }
+
+        List<NearbyReportDTOOut> result = new ArrayList<>();
+        for (Report foundReport : reportRepository.findAllByTypeAndCategoryAndStatus(
+                ReportType.FOUND, lostReport.getCategory(), ReportStatus.OPEN)) {
+            Double distance = closestDistance(lostReport.getLocations(), foundReport.getLocations());
+            if (distance != null && distance <= radiusKm) {
+                result.add(new NearbyReportDTOOut(distance, convertToDTO(foundReport)));
+            }
+        }
+        result.sort(Comparator.comparing(NearbyReportDTOOut::getDistanceKm));
+        return result;
+    }
+
+    // Shortest distance between any lost location and any found location; skips locations without coordinates
+    private Double closestDistance(Set<Location> lostLocations, Set<Location> foundLocations) {
+        Double closest = null;
+        for (Location lost : lostLocations) {
+            for (Location found : foundLocations) {
+                if (lost.getLatitude() == null || lost.getLongitude() == null
+                        || found.getLatitude() == null || found.getLongitude() == null) {
+                    continue;
+                }
+                double distance = googleMapsService.distanceKm(lost.getLatitude(), lost.getLongitude(),
+                        found.getLatitude(), found.getLongitude());
+                if (closest == null || distance < closest) {
+                    closest = distance;
+                }
+            }
+        }
+        return closest;
+    }
+
 }

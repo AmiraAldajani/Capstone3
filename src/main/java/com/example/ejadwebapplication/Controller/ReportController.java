@@ -9,7 +9,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/v1/report")
@@ -142,5 +141,11 @@ public class ReportController {
     @GetMapping("/brand/{brand}")
     public ResponseEntity<?> getReportsByBrand(@PathVariable String brand) {
         return ResponseEntity.status(200).body(reportService.getReportsByBrand(brand));
+    }
+
+    @GetMapping("/nearby-found/{reportId}")
+    public ResponseEntity<?> getNearbyFoundReports(@PathVariable Integer reportId,
+                                                   @RequestParam(defaultValue = "5") Double radiusKm) {
+        return ResponseEntity.status(200).body(reportService.getNearbyFoundReports(reportId, radiusKm));
     }
 }
