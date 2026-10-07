@@ -10,6 +10,7 @@ import com.example.ejadwebapplication.Repository.LocationRepository;
 import com.example.ejadwebapplication.Repository.NotificationRepository;
 import com.example.ejadwebapplication.Repository.ReportRepository;
 import com.example.ejadwebapplication.Repository.StaffRepository;
+import com.example.ejadwebapplication.Client.EmailSender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ public class StaffService {
     private final LocationRepository locationRepository;
     private final ReportRepository reportRepository;
     private final NotificationRepository notificationRepository;
+    private final EmailSender emailSender;
 
     public List<StaffDTOOut> getAllStaff() {
         return convertListToDTO(staffRepository.findAll());
@@ -59,6 +61,7 @@ public class StaffService {
         staff.setIsVerified(false); // ينتظر توثيق الأدمن
         staff.setLocation(location);
         staffRepository.save(staff);
+        emailSender.sendStaffPending(staff.getEmail(), staff.getFullName(), location.getName());
     }
 
     public void updateStaff(Integer id, StaffDTOIn dto) {
@@ -76,7 +79,10 @@ public class StaffService {
         if (!staff.getEmail().equals(dto.getEmail()) && staffRepository.existsByEmail(dto.getEmail())) {
             throw new ApiException("Email already exists");
         }
-
+        // تغيير المكان له قواعده الخاصة في /transfer
+        if (staff.getLocation() != null && !staff.getLocation().getId().equals(location.getId())) {
+            throw new ApiException("Use the transfer endpoint to change the staff location");
+        }
         staff.setFullName(dto.getFullName());
         staff.setUsername(dto.getUsername());
         staff.setEmail(dto.getEmail());
@@ -134,6 +140,7 @@ public class StaffService {
         staff.setLocation(location);
         staff.setIsVerified(false);
         staffRepository.save(staff);
+        emailSender.sendStaffPending(staff.getEmail(), staff.getFullName(), location.getName());
     }
 
     public List<StaffDTOOut> getVerifiedStaff() {

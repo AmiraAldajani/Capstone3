@@ -7,6 +7,7 @@ import com.example.ejadwebapplication.Model.*;
 import com.example.ejadwebapplication.Repository.NotificationRepository;
 import com.example.ejadwebapplication.Repository.StaffRepository;
 import com.example.ejadwebapplication.Repository.UserRepository;
+import com.example.ejadwebapplication.Client.EmailSender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final StaffRepository staffRepository;
+    private final EmailSender emailSender;
 
     // القائمة الفاضية ترجع [] عادي، ما تحتاج exception
     public List<NotificationDTOOut> getAllNotifications() {
@@ -160,6 +162,9 @@ public class NotificationService {
             notification.setStaff(report.getStaff());
         }
         save(notification);
+        String subject = type == NotificationType.MATCH_CONFIRMED ? "Match confirmed" : "Possible match found";
+        BaseAccount owner = report.getUser() != null ? report.getUser() : report.getStaff();
+        emailSender.sendReportUpdate(owner.getEmail(), owner.getFullName(), subject, message);
     }
 
     // ================= Helpers =================

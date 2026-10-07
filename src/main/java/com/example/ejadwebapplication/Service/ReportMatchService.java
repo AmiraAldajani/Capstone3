@@ -17,13 +17,16 @@ import com.example.ejadwebapplication.Repository.ReportMatchRepository;
 import com.example.ejadwebapplication.Repository.ReportRepository;
 import com.example.ejadwebapplication.Repository.StaffRepository;
 import com.example.ejadwebapplication.Repository.UserRepository;
+import com.example.ejadwebapplication.Client.WhatsAppSender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -32,6 +35,7 @@ public class ReportMatchService {
 
     // أقل نسبة تشابه عشان نحفظ التطابق
     private static final double MATCH_THRESHOLD = 70.0;
+    private final WhatsAppSender whatsAppSender;
 
     private final ReportMatchRepository reportMatchRepository;
     private final ReportRepository reportRepository;
@@ -113,6 +117,13 @@ public class ReportMatchService {
             return;
         }
 
+        // الأعلى نسبة أول، عشان أول تطابق لكل بلاغ LOST يكون هو اللي ينرسل بالواتساب
+        results.sort((a, b) -> Double.compare(b.getScore() == null ? 0 : b.getScore(),
+                a.getScore() == null ? 0 : a.getScore()));
+
+        // ids بلاغات الـ LOST اللي انرسل لأصحابها واتساب في هذي المطابقة
+        Set<Integer> notifiedLost = new HashSet<>();
+
         for (MatchResultDTO result : results) {
             if (result.getScore() == null || result.getScore() < MATCH_THRESHOLD) {
                 continue;
@@ -130,6 +141,14 @@ public class ReportMatchService {
             Report lostReport = report.getType() == ReportType.LOST ? report : other;
             Report foundReport = report.getType() == ReportType.FOUND ? report : other;
             saveMatch(lostReport, foundReport, Math.min(result.getScore(), 100.0), result.getReason());
+
+            // واتساب وحدة بس لكل بلاغ LOST، ولصاحبه لو كان user (الموظف يكفيه الإيميل والإشعار)
+            // add ترجع false لو البلاغ انرسل له قبل، فيوصل أعلى تطابق بس
+            if (lostReport.getUser() != null && notifiedLost.add(lostReport.getId())) {
+                User owner = lostReport.getUser();
+                whatsAppSender.sendMatchFound(owner.getPhone(), owner.getFullName(),
+                        lostReport.getTitle(), foundReport.getTitle());
+            }
         }
     }
 

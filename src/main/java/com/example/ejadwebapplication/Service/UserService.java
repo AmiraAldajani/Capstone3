@@ -11,6 +11,7 @@ import com.example.ejadwebapplication.Repository.NotificationRepository;
 import com.example.ejadwebapplication.Repository.ReportMatchRepository;
 import com.example.ejadwebapplication.Repository.ReportRepository;
 import com.example.ejadwebapplication.Repository.UserRepository;
+import com.example.ejadwebapplication.Client.EmailSender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ public class UserService {
     private final ReportRepository reportRepository;
     private final NotificationRepository notificationRepository;
     private final ReportMatchRepository reportMatchRepository;
+    private final EmailSender emailSender;
 
     public List<UserDTOOut> getAllUsers() {
         List<UserDTOOut> users = new ArrayList<>();
@@ -60,6 +62,7 @@ public class UserService {
         user.setPassword(dto.getPassword());
         user.setPhone(dto.getPhone());
         userRepository.save(user);
+        emailSender.sendWelcome(user.getEmail(), user.getFullName());
     }
 
     public void updateUser(Integer id, AccountDTOIn dto) {

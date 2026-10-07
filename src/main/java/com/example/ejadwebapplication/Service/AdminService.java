@@ -17,6 +17,7 @@ import com.example.ejadwebapplication.Repository.ReportMatchRepository;
 import com.example.ejadwebapplication.Repository.ReportRepository;
 import com.example.ejadwebapplication.Repository.StaffRepository;
 import com.example.ejadwebapplication.Repository.UserRepository;
+import com.example.ejadwebapplication.Client.EmailSender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +39,7 @@ public class AdminService {
     private final ReportRepository reportRepository;
     private final ReportMatchRepository reportMatchRepository;
     private final LocationRepository locationRepository;
+    private final EmailSender emailSender;
 
     public List<AdminDTOOut> getAllAdmins() {
         List<AdminDTOOut> admins = new ArrayList<>();
@@ -115,6 +118,7 @@ public class AdminService {
 
         staff.setIsVerified(true);
         staffRepository.save(staff);
+        emailSender.sendStaffVerified(staff.getEmail(), staff.getFullName(), staff.getLocation().getName());
     }
 
     // ================= Extra =================
@@ -134,6 +138,7 @@ public class AdminService {
         }
         staff.setIsVerified(false);
         staffRepository.save(staff);
+        emailSender.sendStaffUnverified(staff.getEmail(), staff.getFullName());
     }
 
     // أرقام عامة للوحة تحكم الأدمن
@@ -212,6 +217,9 @@ public class AdminService {
             throw new ApiException("No unverified staff at this location");
         }
         staffRepository.saveAll(pending);
+        for (Staff staff : pending) {
+            emailSender.sendStaffVerified(staff.getEmail(), staff.getFullName(), location.getName());
+        }
         return pending.size();
     }
 
