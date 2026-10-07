@@ -70,7 +70,6 @@ public class LocationController {
     public ResponseEntity<?> reverseGeocode(@RequestParam Double lat, @RequestParam Double lng) {
         return ResponseEntity.status(200).body(locationService.reverseGeocode(lat, lng));
     }
-}
 
     @GetMapping("/statistics/{id}")
     public ResponseEntity<?> getLocationStatistics(@PathVariable Integer id) {
@@ -82,3 +81,4 @@ public class LocationController {
         return ResponseEntity.status(200).body(locationService.getTopLocations());
     }
 }
+
