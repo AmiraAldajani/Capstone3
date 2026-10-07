@@ -51,7 +51,7 @@ com.example.ejadwebapplication
 
 1. Clone the repository:
    ```
-   git clone https://github.com/gTurki/Ejad-WebApplication.git
+   git clone https://github.com/gTurki/Ejad.git
    ```
 2. Create a MySQL database and set the connection details in `src/main/resources/application.properties`.
 3. Add your AI API key to the configuration.
@@ -100,7 +100,7 @@ Endpoints for reports, matching and notifications will be added as those modules
 
 | Member | Endpoint |
 |---|---|
-| Amira | ...... |
+| Amira | Test |
 |  | ...... |
 |  | ...... |
 | Fajr | ...... |
