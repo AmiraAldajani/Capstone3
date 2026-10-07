@@ -220,7 +220,13 @@ public class ReportService {
                         )
         );
     }
-
+    public List<ReportDTOOut> getReportsByCategory(Integer categoryId) {
+        Category category = categoryRepository.findCategoryById(categoryId);
+        if (category == null) {
+            throw new ApiException("Category not found");
+        }
+        return convertListToDTO(reportRepository.findAllByCategory(category));
+    }
     // حسب تاريخ ضياع/إيجاد الغرض
     public List<ReportDTOOut> getReportsByDateRange(
             LocalDate from,
