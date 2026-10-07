@@ -27,7 +27,7 @@ public class Category {
     @Column(columnDefinition = "varchar(200) not null")
     private String description;
 
-    @OneToMany(mappedBy = "category")
     @JsonIgnore
+    @OneToMany(mappedBy = "category")
     private Set<Report> reports;
 }

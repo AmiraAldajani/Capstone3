@@ -2,6 +2,7 @@ package com.example.ejadwebapplication.Controller;
 
 import com.example.ejadwebapplication.Api.ApiResponse;
 import com.example.ejadwebapplication.DTOIN.ReportDTOIn;
+import com.example.ejadwebapplication.Enums.ReportStatus;
 import com.example.ejadwebapplication.Service.ReportService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 
 
+import java.time.LocalDate;
 @RestController
 @RequestMapping("/api/v1/report")
 @RequiredArgsConstructor
@@ -29,21 +31,24 @@ public class ReportController {
         return ResponseEntity.status(200).body(reportService.getReportById(id));
     }
 
-    // يرجّع البلاغ بعد الحفظ (فيه الـ id والحالة)
     @PostMapping("/add")
-    public ResponseEntity<?> addReport(@RequestBody @Valid ReportDTOIn dto) {
+    public ResponseEntity<?> addReport(
+            @RequestBody @Valid ReportDTOIn dto) {
         return ResponseEntity.status(200).body(reportService.addReport(dto));
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<?> updateReport(@PathVariable Integer id, @RequestBody @Valid ReportDTOIn dto) {
+    public ResponseEntity<?> updateReport(
+            @PathVariable Integer id,
+            @RequestBody @Valid ReportDTOIn dto) {
         return ResponseEntity.status(200).body(reportService.updateReport(id, dto));
     }
 
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteReport(@PathVariable Integer id) {
         reportService.deleteReport(id);
-        return ResponseEntity.status(200).body(new ApiResponse("Report deleted successfully"));
+        return ResponseEntity.status(200)
+                .body(new ApiResponse("Report deleted successfully"));
     }
 
     @PutMapping("/close/{id}")

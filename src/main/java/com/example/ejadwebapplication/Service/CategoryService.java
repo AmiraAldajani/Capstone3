@@ -4,6 +4,7 @@ import com.example.ejadwebapplication.Api.ApiException;
 import com.example.ejadwebapplication.DTOIN.CategoryDTOIn;
 import com.example.ejadwebapplication.Enums.ReportStatus;
 import com.example.ejadwebapplication.Model.Category;
+import com.example.ejadwebapplication.Model.Report;
 import com.example.ejadwebapplication.Repository.CategoryRepository;
 import com.example.ejadwebapplication.Repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
@@ -71,6 +72,17 @@ public class CategoryService {
         }
         return result;
     }
+
+    public List<Report> getReportsByCategory(Integer categoryId) {
+        Category category = categoryRepository.findById(categoryId).orElseThrow(() -> new ApiException("Category not found with provided id"));
+        return new ArrayList<>(category.getReports());
+    }
+
+    public Integer getReportCountByCategory(Integer categoryId) {
+        Category category = categoryRepository.findById(categoryId).orElseThrow(() -> new ApiException("Category not found with provided id"));
+        return category.getReports().size();
+    }
+
 
     private Category findCategory(Integer id) {
         Category category = categoryRepository.findCategoryById(id);
