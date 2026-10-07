@@ -2,7 +2,6 @@ package com.example.ejadwebapplication.Controller;
 
 import com.example.ejadwebapplication.Api.ApiResponse;
 import com.example.ejadwebapplication.DTOIN.ReportMatchDTOIn;
-import com.example.ejadwebapplication.Enums.MatchStatus;
 import com.example.ejadwebapplication.Service.ReportMatchService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +26,7 @@ public class ReportMatchController {
     }
 
     @GetMapping("/status/{status}")
-    public ResponseEntity<?> getMatchesByStatus(@PathVariable MatchStatus status) {
+    public ResponseEntity<?> getMatchesByStatus(@PathVariable String status) {
         return ResponseEntity.status(200).body(reportMatchService.getMatchesByStatus(status));
     }
 
@@ -58,5 +57,32 @@ public class ReportMatchController {
     public ResponseEntity<?> deleteMatch(@PathVariable Integer id) {
         reportMatchService.deleteMatch(id);
         return ResponseEntity.status(200).body(new ApiResponse("Match deleted successfully"));
+    }
+
+    // ================= Extra =================
+
+    @GetMapping("/report/{reportId}/suggested")
+    public ResponseEntity<?> getSuggestedMatchesForReport(@PathVariable Integer reportId) {
+        return ResponseEntity.status(200).body(reportMatchService.getSuggestedMatchesForReport(reportId));
+    }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<?> getMatchesByUser(@PathVariable Integer userId) {
+        return ResponseEntity.status(200).body(reportMatchService.getMatchesByUser(userId));
+    }
+
+    @PutMapping("/rematch/{reportId}")
+    public ResponseEntity<?> rematchReport(@PathVariable Integer reportId) {
+        return ResponseEntity.status(200).body(reportMatchService.rematchReport(reportId));
+    }
+
+    @GetMapping("/staff/{staffId}")
+    public ResponseEntity<?> getMatchesForStaff(@PathVariable Integer staffId) {
+        return ResponseEntity.status(200).body(reportMatchService.getMatchesForStaff(staffId));
+    }
+
+    @GetMapping("/high-confidence/{minScore}")
+    public ResponseEntity<?> getHighConfidenceMatches(@PathVariable Double minScore) {
+        return ResponseEntity.status(200).body(reportMatchService.getHighConfidenceMatches(minScore));
     }
 }

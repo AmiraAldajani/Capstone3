@@ -9,6 +9,7 @@ import com.example.ejadwebapplication.Repository.StaffRepository;
 import com.example.ejadwebapplication.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,6 +59,31 @@ public class NotificationService {
         markAsRead(notification);
     }
 
+    public void markAllAsReadByUser(Integer userId) {
+        List<Notification> unread = notificationRepository.findAllByUserAndIsReadFalse(findUser(userId));
+        for (Notification notification : unread) {
+            notification.setIsRead(true);
+        }
+        notificationRepository.saveAll(unread);
+    }
+
+    // derived delete لازم يكون داخل transaction
+    @Transactional
+    public void deleteReadByUser(Integer userId) {
+        notificationRepository.deleteAllByUserAndIsReadTrue(findUser(userId));
+    }
+
+    public List<NotificationDTOOut> getUserNotificationsByType(Integer userId, String type) {
+        NotificationType notificationType;
+        try {
+            notificationType = NotificationType.valueOf(type.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ApiException("Type must be NEW_REPORT, MATCH_FOUND or MATCH_CONFIRMED");
+        }
+        return convertListToDTO(notificationRepository
+                .findAllByUserAndTypeOrderByCreatedAtDesc(findUser(userId), notificationType));
+    }
+
     // ================= Staff =================
 
     public List<NotificationDTOOut> getStaffNotifications(Integer staffId) {
@@ -80,6 +106,19 @@ public class NotificationService {
             throw new ApiException("This notification does not belong to this staff member");
         }
         markAsRead(notification);
+    }
+
+    public void markAllAsReadByStaff(Integer staffId) {
+        List<Notification> unread = notificationRepository.findAllByStaffAndIsReadFalse(findStaff(staffId));
+        for (Notification notification : unread) {
+            notification.setIsRead(true);
+        }
+        notificationRepository.saveAll(unread);
+    }
+
+    @Transactional
+    public void deleteReadByStaff(Integer staffId) {
+        notificationRepository.deleteAllByStaffAndIsReadTrue(findStaff(staffId));
     }
 
     // ================= للاستخدام الداخلي (من ReportService و ReportMatchService) =================

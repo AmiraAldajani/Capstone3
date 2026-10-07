@@ -55,6 +55,23 @@ public class NotificationController {
         return ResponseEntity.status(200).body(new ApiResponse("Notification marked as read"));
     }
 
+    @PutMapping("/user/{userId}/read-all")
+    public ResponseEntity<?> markAllAsReadByUser(@PathVariable Integer userId) {
+        notificationService.markAllAsReadByUser(userId);
+        return ResponseEntity.status(200).body(new ApiResponse("All notifications marked as read"));
+    }
+
+    @DeleteMapping("/user/{userId}/delete-read")
+    public ResponseEntity<?> deleteReadByUser(@PathVariable Integer userId) {
+        notificationService.deleteReadByUser(userId);
+        return ResponseEntity.status(200).body(new ApiResponse("Read notifications deleted successfully"));
+    }
+
+    @GetMapping("/user/{userId}/type/{type}")
+    public ResponseEntity<?> getUserNotificationsByType(@PathVariable Integer userId, @PathVariable String type) {
+        return ResponseEntity.status(200).body(notificationService.getUserNotificationsByType(userId, type));
+    }
+
     // ================= Staff =================
 
     @GetMapping("/staff/{staffId}")
@@ -76,5 +93,17 @@ public class NotificationController {
     public ResponseEntity<?> markAsReadByStaff(@PathVariable Integer staffId, @PathVariable Integer notificationId) {
         notificationService.markAsReadByStaff(staffId, notificationId);
         return ResponseEntity.status(200).body(new ApiResponse("Notification marked as read"));
+    }
+
+    @PutMapping("/staff/{staffId}/read-all")
+    public ResponseEntity<?> markAllAsReadByStaff(@PathVariable Integer staffId) {
+        notificationService.markAllAsReadByStaff(staffId);
+        return ResponseEntity.status(200).body(new ApiResponse("All notifications marked as read"));
+    }
+
+    @DeleteMapping("/staff/{staffId}/delete-read")
+    public ResponseEntity<?> deleteReadByStaff(@PathVariable Integer staffId) {
+        notificationService.deleteReadByStaff(staffId);
+        return ResponseEntity.status(200).body(new ApiResponse("Read notifications deleted successfully"));
     }
 }

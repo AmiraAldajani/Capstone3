@@ -52,4 +52,14 @@ public class LocationController {
     public ResponseEntity<?> getLocationsByType(@PathVariable String type) {
         return ResponseEntity.status(200).body(locationService.getLocationsByType(type));
     }
+
+    @GetMapping("/statistics/{id}")
+    public ResponseEntity<?> getLocationStatistics(@PathVariable Integer id) {
+        return ResponseEntity.status(200).body(locationService.getLocationStatistics(id));
+    }
+
+    @GetMapping("/top")
+    public ResponseEntity<?> getTopLocations() {
+        return ResponseEntity.status(200).body(locationService.getTopLocations());
+    }
 }

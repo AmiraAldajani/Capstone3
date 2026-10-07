@@ -42,4 +42,9 @@ public class CategoryController {
         categoryService.deleteCategory(id);
         return ResponseEntity.status(200).body(new ApiResponse("Category deleted successfully"));
     }
+
+    @GetMapping("/statistics")
+    public ResponseEntity<?> getCategoryStatistics() {
+        return ResponseEntity.status(200).body(categoryService.getCategoryStatistics());
+    }
 }

@@ -1,6 +1,7 @@
 package com.example.ejadwebapplication.Service;
 
 import com.example.ejadwebapplication.Api.ApiException;
+import com.example.ejadwebapplication.DTO.ImageAnalysisDTO;
 import com.example.ejadwebapplication.DTOIN.ReportDTOIn;
 import com.example.ejadwebapplication.DTOOUT.LocationDTOOut;
 import com.example.ejadwebapplication.DTOOUT.ReportDTOOut;
@@ -12,7 +13,10 @@ import com.example.ejadwebapplication.Repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -31,6 +35,7 @@ public class ReportService {
     private final ReportMatchRepository reportMatchRepository;
     private final NotificationService notificationService;
     private final ReportMatchService reportMatchService;
+    private final AiService aiService;
 
     public List<ReportDTOOut> getAllReports() {
         return convertListToDTO(reportRepository.findAll());
@@ -69,14 +74,18 @@ public class ReportService {
     }
 
     // نحذف الإشعارات والتطابقات أول، لأنها تأشر على البلاغ (foreign key)
+    // ما نسمح بالحذف لو له تطابق مؤكد، حتى لو انقفل بعدين (MATCHED ← CLOSED)
     @Transactional
     public void deleteReport(Integer id) {
         Report report = findReport(id);
-        if (report.getStatus() == ReportStatus.MATCHED) {
-            throw new ApiException("Cannot delete a report that has a confirmed match");
+        List<ReportMatch> matches = reportMatchRepository.findAllByLostReportOrFoundReport(report, report);
+        for (ReportMatch match : matches) {
+            if (match.getStatus() == MatchStatus.CONFIRMED) {
+                throw new ApiException("Cannot delete a report that has a confirmed match");
+            }
         }
         notificationRepository.deleteAllByReport(report);
-        reportMatchRepository.deleteAll(reportMatchRepository.findAllByLostReportOrFoundReport(report, report));
+        reportMatchRepository.deleteAll(matches);
         reportRepository.delete(report);
     }
 
@@ -144,7 +153,161 @@ public class ReportService {
         return convertListToDTO(reportRepository.findAllByLocationsContaining(location));
     }
 
+    // ================= Extra =================
+
+    public List<ReportDTOOut> searchReports(String keyword) {
+        return convertListToDTO(reportRepository
+                .findAllByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(keyword, keyword));
+    }
+
+    public List<ReportDTOOut> getReportsByCategory(Integer categoryId) {
+        Category category = categoryRepository.findCategoryById(categoryId);
+        if (category == null) {
+            throw new ApiException("Category not found");
+        }
+        return convertListToDTO(reportRepository.findAllByCategory(category));
+    }
+
+    // حسب تاريخ ضياع/إيجاد الغرض
+    public List<ReportDTOOut> getReportsByDateRange(LocalDate from, LocalDate to) {
+        if (from.isAfter(to)) {
+            throw new ApiException("Start date must be before end date");
+        }
+        return convertListToDTO(reportRepository.findAllByItemDateBetween(from, to));
+    }
+
+    // نرجّع البلاغ المغلق مفتوح، بشرط ما يكون له تطابق مؤكد
+    @Transactional
+    public void reopenReport(Integer id) {
+        Report report = findReport(id);
+        if (report.getStatus() != ReportStatus.CLOSED) {
+            throw new ApiException("Only closed reports can be reopened");
+        }
+        for (ReportMatch match : reportMatchRepository.findAllByLostReportOrFoundReport(report, report)) {
+            if (match.getStatus() == MatchStatus.CONFIRMED) {
+                throw new ApiException("Cannot reopen a report that has a confirmed match");
+            }
+        }
+        report.setStatus(ReportStatus.OPEN);
+        reportRepository.save(report);
+    }
+
+    // البلاغات المفتوحة في مكان الموظف (قائمة شغله)
+    public List<ReportDTOOut> getOpenReportsAtStaffLocation(Integer staffId) {
+        Staff staff = staffRepository.findStaffById(staffId);
+        if (staff == null) {
+            throw new ApiException("Staff not found");
+        }
+        if (staff.getLocation() == null) {
+            throw new ApiException("Staff is not assigned to a location");
+        }
+        return convertListToDTO(reportRepository
+                .findAllByLocationsContainingAndStatus(staff.getLocation(), ReportStatus.OPEN));
+    }
+
+    // ================= Extra 2 =================
+
+    // تحليل الصورة + رفع البلاغ بخطوة وحدة، والمستخدم يقدر يعدّل بعدين بـ update
+    @Transactional
+    public ReportDTOOut addReportFromImage(MultipartFile image, String type, Integer userId, Integer staffId,
+                                           Set<Integer> locationIds, LocalDate itemDate) {
+        // نتحقق من المدخلات أول، قبل ما نصرف طلب على الـ AI
+        type = type.toUpperCase();
+        if (!type.equals("LOST") && !type.equals("FOUND")) {
+            throw new ApiException("Type must be LOST or FOUND");
+        }
+        if ((userId == null) == (staffId == null)) {
+            throw new ApiException("Report must have exactly one owner: userId or staffId");
+        }
+        if (locationIds == null || locationIds.isEmpty()) {
+            throw new ApiException("At least one location is required");
+        }
+        if (itemDate.isAfter(LocalDate.now())) {
+            throw new ApiException("Item date cannot be in the future");
+        }
+
+        ImageAnalysisDTO analysis = aiService.analyzeImage(image);
+        if (analysis.getCategoryId() == null) {
+            throw new ApiException("AI could not detect a valid category, please use /report/add instead");
+        }
+        if (isBlank(analysis.getTitle()) || isBlank(analysis.getDescription()) || isBlank(analysis.getColor())) {
+            throw new ApiException("AI response is missing details, please use /report/add instead");
+        }
+
+        // نقص النصوص على حدود الأعمدة لأن الـ AI ممكن يطوّل
+        ReportDTOIn dto = new ReportDTOIn();
+        dto.setType(type);
+        dto.setTitle(cut(analysis.getTitle(), 50));
+        dto.setDescription(cut(analysis.getDescription(), 200));
+        dto.setColor(cut(analysis.getColor(), 30));
+        dto.setBrand(cut(analysis.getBrand(), 50));
+        dto.setItemDate(itemDate);
+        dto.setUserId(userId);
+        dto.setStaffId(staffId);
+        dto.setCategoryId(analysis.getCategoryId());
+        dto.setLocationIds(locationIds);
+        return addReport(dto);
+    }
+
+    // المرشحين بدون AI: النوع المعاكس + نفس التصنيف + مفتوحة + مكان مشترك
+    public List<ReportDTOOut> getSimilarReports(Integer id) {
+        Report report = findReport(id);
+        ReportType oppositeType = report.getType() == ReportType.LOST ? ReportType.FOUND : ReportType.LOST;
+        return convertListToDTO(reportRepository.findMatchCandidates(
+                oppositeType, report.getCategory(), ReportStatus.OPEN, report.getLocations()));
+    }
+
+    public List<ReportDTOOut> getReportsByCity(String city) {
+        return convertListToDTO(reportRepository.findAllByCity(city));
+    }
+
+    public List<ReportDTOOut> getRecentReports(Integer days) {
+        checkDays(days);
+        return convertListToDTO(reportRepository.findAllByCreatedAtAfter(LocalDateTime.now().minusDays(days)));
+    }
+
+    // بلاغات مفتوحة من زمان بدون نتيجة
+    public List<ReportDTOOut> getStaleReports(Integer days) {
+        checkDays(days);
+        return convertListToDTO(reportRepository.findAllByStatusAndCreatedAtBefore(
+                ReportStatus.OPEN, LocalDateTime.now().minusDays(days)));
+    }
+
+    public List<ReportDTOOut> getOpenReportsByUser(Integer userId) {
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("User not found");
+        }
+        return convertListToDTO(reportRepository.findAllByUserAndStatus(user, ReportStatus.OPEN));
+    }
+
+    // Containing عشان "ذهبي" تلقى "ذهبي فاتح"
+    public List<ReportDTOOut> getReportsByColor(String color) {
+        return convertListToDTO(reportRepository.findAllByColorContainingIgnoreCase(color));
+    }
+
+    public List<ReportDTOOut> getReportsByBrand(String brand) {
+        return convertListToDTO(reportRepository.findAllByBrandContainingIgnoreCase(brand));
+    }
+
     // ================= Helpers =================
+
+    private void checkDays(Integer days) {
+        if (days == null || days < 1) {
+            throw new ApiException("Days must be at least 1");
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private String cut(String value, int max) {
+        if (value == null || value.length() <= max) {
+            return value;
+        }
+        return value.substring(0, max);
+    }
 
     private Report findReport(Integer id) {
         Report report = reportRepository.findReportById(id);

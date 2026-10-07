@@ -4,6 +4,7 @@ import com.example.ejadwebapplication.Api.ApiException;
 import com.example.ejadwebapplication.DTOIN.LocationDTOIn;
 import com.example.ejadwebapplication.DTOOUT.LocationDTOOut;
 import com.example.ejadwebapplication.Enums.LocationType;
+import com.example.ejadwebapplication.Enums.ReportStatus;
 import com.example.ejadwebapplication.Model.Location;
 import com.example.ejadwebapplication.Repository.LocationRepository;
 import com.example.ejadwebapplication.Repository.ReportRepository;
@@ -12,7 +13,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -81,6 +84,37 @@ public class LocationService {
             throw new ApiException("Invalid location type");
         }
         return convertListToDTO(locationRepository.findAllByType(locationType));
+    }
+
+    // عدد الموظفين والبلاغات في مكان واحد
+    public Map<String, Object> getLocationStatistics(Integer id) {
+        Location location = locationRepository.findLocationById(id);
+        if (location == null) {
+            throw new ApiException("Location not found");
+        }
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("locationId", location.getId());
+        stats.put("locationName", location.getName());
+        stats.put("staffCount", staffRepository.countByLocation(location));
+        stats.put("openReports", reportRepository.countByLocationsContainingAndStatus(location, ReportStatus.OPEN));
+        stats.put("matchedReports", reportRepository.countByLocationsContainingAndStatus(location, ReportStatus.MATCHED));
+        stats.put("closedReports", reportRepository.countByLocationsContainingAndStatus(location, ReportStatus.CLOSED));
+        return stats;
+    }
+
+    // الأماكن مرتبة حسب عدد البلاغات (وين الأغراض تضيع أكثر)
+    public List<Map<String, Object>> getTopLocations() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Location location : locationRepository.findAll()) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("locationId", location.getId());
+            item.put("locationName", location.getName());
+            item.put("city", location.getCity());
+            item.put("reportCount", reportRepository.countByLocationsContaining(location));
+            result.add(item);
+        }
+        result.sort((a, b) -> Integer.compare((Integer) b.get("reportCount"), (Integer) a.get("reportCount")));
+        return result;
     }
 
     private List<LocationDTOOut> convertListToDTO(List<Location> locations) {

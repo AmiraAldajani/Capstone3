@@ -24,4 +24,9 @@ public interface StaffRepository extends JpaRepository<Staff, Integer> {
 
     // الموظفين الموثّقين بس هم اللي يوصلهم إشعار NEW_REPORT
     List<Staff> findAllByLocationAndIsVerifiedTrue(Location location);
+
+    // للإحصائيات
+    Integer countByIsVerified(Boolean isVerified);
+
+    Integer countByLocation(Location location);
 }

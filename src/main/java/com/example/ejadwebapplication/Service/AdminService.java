@@ -3,15 +3,29 @@ package com.example.ejadwebapplication.Service;
 import com.example.ejadwebapplication.Api.ApiException;
 import com.example.ejadwebapplication.DTOIN.AccountDTOIn;
 import com.example.ejadwebapplication.DTOOUT.AdminDTOOut;
+import com.example.ejadwebapplication.Enums.MatchStatus;
+import com.example.ejadwebapplication.Enums.ReportStatus;
+import com.example.ejadwebapplication.Enums.ReportType;
 import com.example.ejadwebapplication.Model.Admin;
+import com.example.ejadwebapplication.Model.Location;
+import com.example.ejadwebapplication.Model.Report;
+import com.example.ejadwebapplication.Model.ReportMatch;
 import com.example.ejadwebapplication.Model.Staff;
 import com.example.ejadwebapplication.Repository.AdminRepository;
+import com.example.ejadwebapplication.Repository.LocationRepository;
+import com.example.ejadwebapplication.Repository.ReportMatchRepository;
+import com.example.ejadwebapplication.Repository.ReportRepository;
 import com.example.ejadwebapplication.Repository.StaffRepository;
+import com.example.ejadwebapplication.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +33,10 @@ public class AdminService {
 
     private final AdminRepository adminRepository;
     private final StaffRepository staffRepository;
+    private final UserRepository userRepository;
+    private final ReportRepository reportRepository;
+    private final ReportMatchRepository reportMatchRepository;
+    private final LocationRepository locationRepository;
 
     public List<AdminDTOOut> getAllAdmins() {
         List<AdminDTOOut> admins = new ArrayList<>();
@@ -97,6 +115,110 @@ public class AdminService {
 
         staff.setIsVerified(true);
         staffRepository.save(staff);
+    }
+
+    // ================= Extra =================
+
+    // سحب التوثيق (مثلاً الموظف ترك العمل)، بعدها ما يقدر يرفع بلاغات ولا يوصله إشعارات
+    public void unverifyStaff(Integer adminId, Integer staffId) {
+        Admin admin = adminRepository.findAdminById(adminId);
+        if (admin == null) {
+            throw new ApiException("Admin not found");
+        }
+        Staff staff = staffRepository.findStaffById(staffId);
+        if (staff == null) {
+            throw new ApiException("Staff not found");
+        }
+        if (!staff.getIsVerified()) {
+            throw new ApiException("Staff is not verified");
+        }
+        staff.setIsVerified(false);
+        staffRepository.save(staff);
+    }
+
+    // أرقام عامة للوحة تحكم الأدمن
+    public Map<String, Object> getStatistics(Integer adminId) {
+        if (adminRepository.findAdminById(adminId) == null) {
+            throw new ApiException("Admin not found");
+        }
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("totalUsers", userRepository.count());
+        stats.put("totalStaff", staffRepository.count());
+        stats.put("unverifiedStaff", staffRepository.countByIsVerified(false));
+        stats.put("openReports", reportRepository.countByStatus(ReportStatus.OPEN));
+        stats.put("matchedReports", reportRepository.countByStatus(ReportStatus.MATCHED));
+        stats.put("closedReports", reportRepository.countByStatus(ReportStatus.CLOSED));
+        stats.put("suggestedMatches", reportMatchRepository.countByStatus(MatchStatus.SUGGESTED));
+        stats.put("confirmedMatches", reportMatchRepository.countByStatus(MatchStatus.CONFIRMED));
+        return stats;
+    }
+
+    // ================= Extra 2 =================
+
+    // يقفل البلاغات المفتوحة من أكثر من X يوم، ويرفض اقتراحاتها المعلقة
+    @Transactional
+    public Integer closeOldReports(Integer adminId, Integer days) {
+        checkAdmin(adminId);
+        if (days == null || days < 1) {
+            throw new ApiException("Days must be at least 1");
+        }
+        List<Report> oldReports = reportRepository.findAllByStatusAndCreatedAtBefore(
+                ReportStatus.OPEN, LocalDateTime.now().minusDays(days));
+
+        List<ReportMatch> rejected = new ArrayList<>();
+        for (Report report : oldReports) {
+            report.setStatus(ReportStatus.CLOSED);
+            for (ReportMatch match : reportMatchRepository.findAllByLostReportOrFoundReport(report, report)) {
+                if (match.getStatus() == MatchStatus.SUGGESTED) {
+                    match.setStatus(MatchStatus.REJECTED);
+                    rejected.add(match);
+                }
+            }
+        }
+        reportRepository.saveAll(oldReports);
+        reportMatchRepository.saveAll(rejected);
+        return oldReports.size();
+    }
+
+    // كل تطابق مؤكد = بلاغ LOST واحد انحل، فالنسبة = المؤكدة / كل بلاغات LOST
+    public Map<String, Object> getSuccessRate(Integer adminId) {
+        checkAdmin(adminId);
+        int totalLost = reportRepository.countByType(ReportType.LOST);
+        int matchedLost = reportMatchRepository.countByStatus(MatchStatus.CONFIRMED);
+        double rate = totalLost == 0 ? 0.0 : Math.round(matchedLost * 1000.0 / totalLost) / 10.0;
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("totalLostReports", totalLost);
+        result.put("matchedLostReports", matchedLost);
+        result.put("successRate", rate + "%");
+        return result;
+    }
+
+    // توثيق كل الموظفين المنتظرين في مكان واحد
+    public Integer verifyAllStaffAtLocation(Integer adminId, Integer locationId) {
+        checkAdmin(adminId);
+        Location location = locationRepository.findLocationById(locationId);
+        if (location == null) {
+            throw new ApiException("Location not found");
+        }
+        List<Staff> pending = new ArrayList<>();
+        for (Staff staff : staffRepository.findAllByLocation(location)) {
+            if (!staff.getIsVerified()) {
+                staff.setIsVerified(true);
+                pending.add(staff);
+            }
+        }
+        if (pending.isEmpty()) {
+            throw new ApiException("No unverified staff at this location");
+        }
+        staffRepository.saveAll(pending);
+        return pending.size();
+    }
+
+    private void checkAdmin(Integer adminId) {
+        if (adminRepository.findAdminById(adminId) == null) {
+            throw new ApiException("Admin not found");
+        }
     }
 
     private AdminDTOOut convertToDTO(Admin admin) {
