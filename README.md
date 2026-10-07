@@ -100,7 +100,7 @@ Endpoints for reports, matching and notifications will be added as those modules
 
 | Member | Endpoint |
 |---|---|
-| Amira | ...... |
+| Amira | Test |
 |  | ...... |
 |  | ...... |
 | Fajr | ...... |
